@@ -1,3 +1,4 @@
+'wbPath with a trailing '\'
 Function GetTheValue(wbPath, wbName, wsName, cellRef)
     Dim cn As ADODB.Connection
     Dim rs As ADODB.Recordset
