@@ -1,0 +1,94 @@
+Sub ExcelRangeToPowerPoint()
+
+Dim rngToCopyToCopy As Excel.Range
+Dim PowerPointApp As PowerPoint.Application
+Dim pptFile As PowerPoint.Presentation
+Dim pptSlide As PowerPoint.Slide
+Dim myShapeRange As PowerPoint.Shape, shp As PowerPoint.Shape
+Dim arrFiles As Variant
+
+
+lrow = ThisWorkbook.Sheets("List").Range("B" & Rows.Count).End(xlUp).Row
+arrFiles = ThisWorkbook.Sheets("List").Range("B2:E" & lrow)
+
+For i = LBound(arrFiles) To UBound(arrFiles)
+
+        Set wb = Workbooks.Open(arrFiles(i, 1), UpdateLinks:=False, ReadOnly:=True)
+        
+        'Copy Range from Excel
+          Set rngToCopy = wb.Sheets(1).Range("Print_Area")
+        
+        'Create an Instance of PowerPoint
+          On Error Resume Next
+            
+            'Is PowerPoint already opened?
+              Set PowerPointApp = GetObject(class:="PowerPoint.Application")
+            
+            'Clear the error between errors
+              Err.Clear
+        
+            'If PowerPoint is not already open then open PowerPoint
+              If PowerPointApp Is Nothing Then Set PowerPointApp = CreateObject(class:="PowerPoint.Application")
+            
+            'Handle if the PowerPoint Application is not found
+              If Err.Number = 429 Then
+                MsgBox "PowerPoint could not be found, aborting."
+                Exit Sub
+              End If
+        
+          On Error GoTo 0
+          
+        'Make PowerPoint Visible and Active
+          PowerPointApp.Visible = True
+          PowerPointApp.Activate
+            
+        'Open the Template Presentation
+          pptTemp = "C:\Users\Vikram\Desktop\Presentation1.potx"
+          Set pptFile = PowerPointApp.Presentations.Open(pptTemp, msoTrue)
+        
+        'name the first slide
+          Set pptSlide = pptFile.Slides(1)
+        
+        'Copy Excel Range
+          rngToCopy.Copy
+        
+        'Paste to PowerPoint and position
+          pptSlide.Shapes.PasteSpecial link:=True, DataType:=msoLinkedOLEObject 'ppPasteEnhancedMetafile
+        
+        'For Each shp In pptSlide.Shapes
+        'Debug.Print shp.Name
+        'If shp.Type = msoLinkedOLEObject Then
+        '     If shp.OLEFormat.progID = "Excel.Sheet" Then
+        '
+        '                shp.LinkFormat.AutoUpdate = ppUpdateOptionManual
+        '
+        '       End If
+        ' End If
+        'Next
+          Set myShapeRange = pptSlide.Shapes(pptSlide.Shapes.Count)
+          
+            'Set position:
+              myShapeRange.Left = 234
+              myShapeRange.Top = 186
+        
+        pptSlide.Shapes("Textbox 3").TextFrame.TextRange.Text = arrFiles(i, 2)
+        
+        'pptSlide.HeadersFooters.SlideNumber. = arrFiles(i, 4)
+        
+        
+        'Print ppt to PDF
+            
+        pptName = wb.Path & "\" & arrFiles(i, 3) & ".pptx"
+        pptFile.SaveAs Filename:=pptName, FileFormat:=ppSaveAsDefault
+        
+        pdfName = wb.Path & "\" & arrFiles(i, 3) & ".pdf"
+        pptFile.SaveAs Filename:=pdfName, FileFormat:=ppSaveAsPDF
+        
+        pptFile.Close
+        wb.Close False
+Next
+'Clear The Clipboard
+  Application.CutCopyMode = False
+
+End Sub
+
