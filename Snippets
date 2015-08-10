@@ -1,11 +1,11 @@
-Show 'Format cells' dialog box:
+1. Show 'Format cells' dialog box:
   Application.CommandBars("Worksheet Menu Bar").Controls("Format").Controls("Cells...").Execute
   Application.Dialogs(xlDialogFormatNumber).Show
   
-Show SavesAs dialogue box and name new file:
-  1. bFileSaveAs = Application.Dialogs(xlDialogSaveAs).Show(, 6)
+2. Show SavesAs dialogue box and name new file:
+  a. bFileSaveAs = Application.Dialogs(xlDialogSaveAs).Show(, 6)
   Or
-  2. vFile = Application.GetSaveAsFilename(InitialFileName:=".xlsb", _
+  b. vFile = Application.GetSaveAsFilename(InitialFileName:=".xlsb", _
         FileFilter:="Excel Binary files (*.xlsb), *.xlsb, All files (*.*), *.*")
     
       '(xlExcel12 = 50,  Excel Binary Workbook in 2007-2010 with or without macro's, xlsb)
