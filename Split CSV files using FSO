@@ -1,0 +1,33 @@
+Sub xlParse()
+
+Dim strfilepath As String, fso As Object
+
+Set fso = CreateObject("Scripting.FileSystemObject")
+
+Const ForReading = 1
+Const ForWriting = 2
+maxRows = 100000
+i = 0
+n = 0
+t = Timer
+strfilepath = Application.GetOpenFilename
+If strfilepath <> "False" Then
+    Set outFile = Nothing
+    Set readFile = fso.OpenTextFile(strfilepath, ForReading)
+    Header = readFile.ReadLine
+    Do Until readFile.AtEndOfStream
+        If i = 0 Then
+            If Not outFile Is Nothing Then outFile.Close
+            Set outFile = fso.OpenTextFile("Output_" & Right("00" & n, 2) & ".csv", ForWriting, True)
+            outFile.WriteLine (Header)
+            n = n + 1
+        End If
+        outFile.WriteLine (readFile.ReadLine)
+        i = (i + 1) Mod maxRows
+    Loop
+    readFile.Close
+    If Not outFile Is Nothing Then outFile.Close
+
+End If
+Debug.Print Timer - t
+End Sub
