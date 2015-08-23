@@ -1,0 +1,14 @@
+'# Create new PivotCache and PivotTable
+
+Sub xlTest()
+
+Set ptCache = ActiveWorkbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:= _
+    Sheets("All").Range("A1").CurrentRegion.Address(ReferenceStyle:=xlR1C1), Version:=xlPivotTableVersion10)
+    
+ptCache.CreatePivotTable TableDestination:="Sheet2!" & Range("A1").Address(ReferenceStyle:=xlR1C1), TableName:="PivotTable", DefaultVersion _
+:=xlPivotTableVersion10
+
+ActiveWorkbook.RefreshAll
+
+End Sub
+
