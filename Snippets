@@ -1,12 +1,26 @@
-1. Show 'Format cells' dialog box:
+1. '//Show 'Format cells' dialog box:
   Application.CommandBars("Worksheet Menu Bar").Controls("Format").Controls("Cells...").Execute
   Application.Dialogs(xlDialogFormatNumber).Show
   
-2. Show SavesAs dialogue box and name new file:
+2. '//Show SavesAs dialogue box and name new file:
   a. bFileSaveAs = Application.Dialogs(xlDialogSaveAs).Show(, 6)
-  Or
+  Or,
   b. vFile = Application.GetSaveAsFilename(InitialFileName:=".xlsb", _
         FileFilter:="Excel Binary files (*.xlsb), *.xlsb, All files (*.*), *.*")
     
       '(xlExcel12 = 50,  Excel Binary Workbook in 2007-2010 with or without macro's, xlsb)
       If vFile <> False Then ThisWorkbook.SaveAs Filename:=vFile, FileFormat:=xlExcel12
+
+3. '//Enable editing in ProtectedView Files
+  Application.ActiveProtectedViewWindow.Edit
+  
+a. 'Application.ProtectedViewWindows.Open Filename:="C:\Users\Zangetsu\Desktop\test\Source A.xls"
+    'Workbooks("Source A.xls[Protected View]").Activate
+    'With Excel.Application
+    '    .ActiveWindow.ActivateNext
+    'End With
+    Application.ActiveProtectedViewWindow.Edit
+  Or,
+  b.   Windows("Book1").Activate
+    ActiveWindow.ActivateNext
+    Application.ActiveProtectedViewWindow.Edit
