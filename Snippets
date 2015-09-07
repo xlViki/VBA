@@ -12,15 +12,32 @@
       If vFile <> False Then ThisWorkbook.SaveAs Filename:=vFile, FileFormat:=xlExcel12
 
 3. '//Enable editing in ProtectedView Files
-  Application.ActiveProtectedViewWindow.Edit
+    Application.ActiveProtectedViewWindow.Edit
   
-a. 'Application.ProtectedViewWindows.Open Filename:="C:\Users\Zangetsu\Desktop\test\Source A.xls"
-    'Workbooks("Source A.xls[Protected View]").Activate
-    'With Excel.Application
-    '    .ActiveWindow.ActivateNext
-    'End With
-    Application.ActiveProtectedViewWindow.Edit
-  Or,
-  b.   Windows("Book1").Activate
-    ActiveWindow.ActivateNext
-    Application.ActiveProtectedViewWindow.Edit
+  a. 'Application.ProtectedViewWindows.Open Filename:="C:\Users\Zangetsu\Desktop\test\Source A.xls"
+      'Workbooks("Source A.xls[Protected View]").Activate
+      'With Excel.Application
+      '    .ActiveWindow.ActivateNext
+      'End With
+      Application.ActiveProtectedViewWindow.Edit
+    Or,
+  b.  Windows("Book1").Activate
+      ActiveWindow.ActivateNext
+      Application.ActiveProtectedViewWindow.Edit
+
+4. '// Offset from Userform Controls Linked Cell - ControlsMaster
+     Sub ControlsMaster()
+        Debug.Print Application.Caller
+        x = ActiveSheet.Shapes(Application.Caller).ControlFormat.LinkedCell
+        Range(x).Offset(0, 1).Value = Now()
+      End Sub
+
+5. MouseOver Function
+    Public Function OnMouseOver()
+      ActiveWorkbook.FollowHyperlink "filepath\filename.pdf"
+    End Function
+    'In the cell Use the following formula:
+      =IFERROR(HYPERLINK(OnMouseOver(),"Text"),"TextError")
+
+
+ 6. 
