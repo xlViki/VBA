@@ -1,0 +1,85 @@
+1. Run common macro from multiple checkboxes
+   '//Class Module - Class1
+      Option Explicit
+      Public WithEvents CBXGroup As MSForms.CheckBox
+      Private Sub CBXGroup_Change()
+      '    With CBXGroup
+      '        MsgBox .Name & vbLf & .Value
+      '    End With
+      
+      Call Module1.TestActiveX
+      
+      End Sub
+    
+    '//Code Module
+        'http://msgroups.net/microsoft.public.excel.programming/change-event-does-not-fire/18616
+        ' For grouping Activex checkboxes on workbook open
+        Option Explicit
+        Dim ChkBoxes() As New Class1
+        Sub Auto_Open()
+            Dim CBXCount As Long
+            Dim OLEObj As OLEObject
+                
+            CBXCount = 0
+            For Each OLEObj In ThisWorkbook.Worksheets("sheet2").OLEObjects
+                If TypeOf OLEObj.Object Is MSForms.CheckBox Then
+                    CBXCount = CBXCount + 1
+                    ReDim Preserve ChkBoxes(1 To CBXCount)
+                    Set ChkBoxes(CBXCount).CBXGroup = OLEObj.Object
+                End If
+            Next OLEObj
+        End Sub
+
+        Sub Test()
+        
+        Dim lrow As Long, rRange As Range, r As Range, arrList() As String, Cnt As Long, CB As CheckBox
+        
+        lrow = Sheets(1).Range("A" & Rows.Count).End(xlUp).Row
+        Set rRange = Sheets(1).Range("E2:E" & lrow)
+        
+                  Cnt = 0
+                For Each CB In ThisWorkbook.Sheets(2).CheckBoxes
+                   If CB.Value = 1 Then
+                    ReDim Preserve arrList(Cnt)
+                    arrList(Cnt) = CB.Text
+                    Cnt = Cnt + 1
+                   End If
+                Next
+                 
+                 If Cnt = 0 Then GoTo ShowAll
+                 'Pass the array as criteria to filter Table 2
+                 Sheets(1).ListObjects("Table1").Range.AutoFilter Field:=5, Criteria1:=arrList, Operator:=xlFilterValues
+                Exit Sub
+        
+        ShowAll:
+        
+        Sheets(1).ListObjects("Table1").AutoFilter.ShowAllData
+        End Sub
+        
+        Sub TestActiveX()
+        
+        Dim lrow As Long, rRange As Range, r As Range, arrList() As String, Cnt As Long, CB As OLEObject
+        
+        lrow = Sheets(1).Range("A" & Rows.Count).End(xlUp).Row
+        Set rRange = Sheets(1).Range("E2:E" & lrow)
+        
+                  Cnt = 0
+                For Each CB In ThisWorkbook.Sheets(2).OLEObjects
+                   If TypeOf CB.Object Is MSForms.CheckBox Then
+                        If CB.Object.Value = True Then
+                            ReDim Preserve arrList(Cnt)
+                            arrList(Cnt) = CB.Object.Caption
+                            Cnt = Cnt + 1
+                        End If
+                   End If
+                Next
+                 
+                 If Cnt = 0 Then GoTo ShowAll
+                 'Pass the array as criteria to filter Table 2
+                 Sheets(1).ListObjects("Table1").Range.AutoFilter Field:=5, Criteria1:=arrList, Operator:=xlFilterValues
+                Exit Sub
+        
+        ShowAll:
+        
+        Sheets(1).ListObjects("Table1").AutoFilter.ShowAllData
+        End Sub
