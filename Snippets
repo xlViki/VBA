@@ -40,4 +40,10 @@
       =IFERROR(HYPERLINK(OnMouseOver(),"Text"),"TextError")
 
 
- 6. 
+ 6. '//Check if Sheetname exists in a Worksheet
+    Function CheckSheetName(sheet_name As String) As Boolean
+      Dim ws As Worksheet
+      On Error Resume Next
+      Set ws = Worksheets(sheet_name)
+      If ws Is Nothing Then CheckSheetName = False Else CheckSheetName = True
+    End Function
