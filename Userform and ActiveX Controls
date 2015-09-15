@@ -83,3 +83,17 @@
         
         Sheets(1).ListObjects("Table1").AutoFilter.ShowAllData
         End Sub
+
+2. Load Combobox on Workbook Open
+  'MSForms Combobox
+      Sheets("Sheet1").Shapes.Range(Array("Drop Down 1")).Select
+       With Selection
+           .ListFillRange = "$A$2:$A$7"
+           .LinkedCell = ""
+           .DropDownLines = 8
+           .Display3DShading = False
+       End With
+       Application.Goto Range("A1")
+
+  'ActiveX Combobox
+      Sheets(1).ComboBox21.List = Sheets(1).Range("A2:A10").Value
