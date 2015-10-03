@@ -78,3 +78,26 @@
                Error errnum
        End Select
     End Function
+
+  8. '//Concat Strings function
+    Function AConcat(Sep As String, ParamArray ArgList() As Variant) As String
+  	 Dim Arg As Variant
+  	 Dim cell As Range
+  	 Dim Element As Variant
+  	 
+  	 For Each Arg In ArgList
+  		  If TypeOf Arg Is Range Then
+  			  For Each cell In Arg.Cells
+  				 AConcat = AConcat & cell.value & Sep
+  			 Next cell
+  		  ElseIf IsArray(Arg) Then
+  			  For Each Element In Arg
+  				 AConcat = AConcat & Element & Sep
+  			 Next Element
+  		  Else
+  			  AConcat = AConcat & Arg & Sep
+  		  End If
+  	  Next Arg
+  	 
+  	 AConcat = Left(AConcat, Len(AConcat) - Len(Sep))
+	  End Function
