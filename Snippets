@@ -101,3 +101,95 @@
   	 
   	 AConcat = Left(AConcat, Len(AConcat) - Len(Sep))
    End Function
+
+  9. '//List all files in a folder
+      Sub ListFiles()
+         Set obbj as createobject("scripting . filesystem")
+         Set obbjfolder as obbj.getfolder(strpath)
+         I=1
+         For each obj in obbjfolder.files
+         Cells(I+1,1).obj.name
+         Next obj
+      End Sub
+         
+  10. '//List Files in a folder and sub-folders (with user prompt for Top directory)
+      Option Explicit
+
+      Sub ListFiles()
+          'Set a reference to Microsoft Scripting Runtime by using
+          'Tools > References in the Visual Basic Editor (Alt+F11)
+          'Declare the variables
+          Dim objFSO As Scripting.FileSystemObject
+          Dim objTopFolder As Scripting.Folder
+          Dim strTopFolderName As String
+      
+          'Insert the headers for Columns A through F
+          Range("A1").Value = "File Name"
+          Range("B1").Value = "File Size"
+          Range("C1").Value = "File Type"
+          Range("D1").Value = "Date Created"
+          Range("E1").Value = "Date Last Accessed"
+          Range("F1").Value = "Date Last Modified"
+          Range("G1").Value = "Path"
+      
+          'Assign the top folder to a variable
+          strTopFolderName = GetFolder("H:\Desktop")
+      
+          'Create an instance of the FileSystemObject
+          Set objFSO = CreateObject("Scripting.FileSystemObject")
+      
+          'Get the top folder
+          Set objTopFolder = objFSO.GetFolder(strTopFolderName)
+      
+          'Call the RecursiveFolder routine
+          Call RecursiveFolder(objTopFolder, True)
+      
+          'Change the width of the columns to achieve the best fit
+          Columns.AutoFit
+      
+      End Sub
+      
+      Sub RecursiveFolder(objFolder As Scripting.Folder, IncludeSubFolders As Boolean)
+         'Declare the variables
+          Dim objFile As Scripting.File
+          Dim objSubFolder As Scripting.Folder
+          Dim NextRow As Long
+      
+          'Find the next available row
+          NextRow = Cells(Rows.Count, "A").End(xlUp).Row + 1
+      
+          'Loop through each file in the folder
+          For Each objFile In objFolder.Files
+              Cells(NextRow, "A").Value = objFile.Name
+              Cells(NextRow, "B").Value = objFile.Size
+              Cells(NextRow, "C").Value = objFile.Type
+              Cells(NextRow, "D").Value = objFile.DateCreated
+              Cells(NextRow, "E").Value = objFile.DateLastAccessed
+              Cells(NextRow, "F").Value = objFile.DateLastModified
+              Cells(NextRow, "G").Value = objFile.Path
+              NextRow = NextRow + 1
+          Next objFile
+      
+          'Loop through files in the subfolders
+          If IncludeSubFolders Then
+              For Each objSubFolder In objFolder.SubFolders
+                  Call RecursiveFolder(objSubFolder, True)
+              Next objSubFolder
+          End If
+      End Sub
+      
+      Function GetFolder(strPath As String) As String
+        Dim fldr As FileDialog
+        Dim sItem As String
+        Set fldr = Application.FileDialog(msoFileDialogFolderPicker)
+        With fldr
+            .Title = "Select a Folder"
+            .AllowMultiSelect = False
+            .InitialFileName = strPath
+            If .Show <> -1 Then GoTo NextCode
+            sItem = .SelectedItems(1)
+        End With
+        NextCode:
+        GetFolder = sItem
+        Set fldr = Nothing
+      End Function
