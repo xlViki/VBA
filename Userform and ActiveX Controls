@@ -1,4 +1,23 @@
-1. Run common macro from multiple checkboxes
+1. '//ProgressBar Function
+   Sub ProgressBarUpdate(ByVal i As Long, rows As Long, strpath As String, DoingWhat As String)
+         '~~>Progress bar update
+        Dim Done As Double
+            Done = i / rows
+        With Progress
+            .Label1.Caption = DoingWhat
+            .FrameProgress.Caption = Format(Done, "0%")
+            .LabelProgress.Width = Done * (.FrameProgress.Width - 10)
+            .Label2.Caption = "Current File: " & strpath
+        End With
+        DoEvents 'updates form
+   End Sub
+
+   Sub ProgressBar() 'Set modal property of Userform to 'True' to continue running after the userform shows
+        Progress.LabelProgress.Width = 0
+        Progress.Show
+   End Sub
+
+2. Run common macro from multiple checkboxes
    '//Class Module - Class1
       Option Explicit
       Public WithEvents CBXGroup As MSForms.CheckBox
@@ -84,7 +103,7 @@
         Sheets(1).ListObjects("Table1").AutoFilter.ShowAllData
         End Sub
 
-2. Load Combobox on Workbook Open
+3. Load Combobox on Workbook Open
   'MSForms Combobox
       Sheets("Sheet1").Shapes.Range(Array("Drop Down 1")).Select
        With Selection
