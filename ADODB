@@ -1,0 +1,137 @@
+1. '//Pull value from a single cell
+Function GetTheValue(wbPath, wbName, wsName, cellRef)
+    Dim cn As ADODB.Connection
+    Dim rs As ADODB.Recordset
+    Dim tmp As Range
+    Dim SQLQuery As String
+    
+    Set cn = New ADODB.Connection
+    Set rs = New ADODB.Recordset
+
+    cn.Open "Provider=Microsoft.ACE.OLEDB.12.0;" & _
+          "Data Source=" & wbPath & wbName & ";" & _
+          "Extended Properties=""Excel 8.0;"""
+
+    SQLQuery = "SELECT * FROM [" & wsName & "$" & cellRef & "]"
+    Debug.Print SQLQuery
+    rs.Open SQLQuery, cn
+
+    GetTheValue = rs.Fields(0).Value
+
+    rs.Close
+    cn.Close
+    Set rs = Nothing
+    Set cn = Nothing
+End Function
+
+
+2. '//Pull value from range name
+
+Public Function ImportDataUDF(strpath As String, RangeName As Variant) As Variant
+
+    Dim lrow As Long, wbMain As Workbook, cell As Range, Rng As Range, i As Long
+    Application.ScreenUpdating = False
+    
+    Dim SQLQuery As String
+        SQLQuery = "Select * FROM " & RangeName
+            
+        Set cn = New ADODB.Connection
+        Set rs = New ADODB.Recordset
+                        
+        cn.Open "Provider=Microsoft.ACE.OLEDB.12.0;Data Source = " & strpath & ";Extended Properties=""Excel 12.0 Xml;HDR=NO"";"
+                                      
+       On Error GoTo ErrHandler
+       rs.Open SQLQuery, cn
+    
+          aux = rs(0).Value
+          Select Case IsNumeric(aux)
+              Case Is = True
+               ImportDataUDF = CDbl(aux)
+              Exit Function
+              Case Else
+               ImportDataUDF = aux
+              Exit Function
+          End Select
+          
+          rs.Close
+          Set cn = Nothing
+          Set rs = Nothing
+          
+    Application.ScreenUpdating = True
+    
+    Exit Function
+
+ErrHandler:
+    
+    Dim strMsg As String
+        strMsg = "Error " & Err.Number & " (" & Err.Description _
+        & ")"
+        MsgBox strMsg
+    Exit Function
+End Function
+
+3. '//Pull value from range name (Sub)
+Sub ImportData()
+    
+    Dim strpath As String, lrow As Long, wbMain As Workbook, cell As Range, Rng As Range, i As Long
+    Application.ScreenUpdating = False
+    
+    Dim SQLQuery() As Variant, arrRecord As Variant, SQLQuery2 As String, SQLQuery3 As String
+        SQLQuery = Array("Select * FROM NameA", " Select * FROM NameB", "Select * FROM NameC")
+ 
+ Start = Timer
+    Set wbMain = ThisWorkbook
+    Set ws = wbMain.Sheets(1)
+        lrow = ws.Range("A" & rows.Count).End(xlUp).Row
+    Set Rng = ws.Range("A2:A" & lrow)
+    Call ProgressBar
+    For Each cell In Rng
+            i = cell.Row
+            strpath = cell.Value
+                                                      
+            Call ProgressBarUpdate(i, lrow, strpath)
+            
+            Set cn = New ADODB.Connection
+            Set rs = New ADODB.Recordset
+                        
+            cn.Open "Provider=Microsoft.ACE.OLEDB.12.0;Data Source = " & strpath & ";Extended Properties=""Excel 12.0 Xml;HDR=NO"";"
+                                                       
+            'If cn.State = adStateClosed Then GoTo ErrFileNotFound
+                                  
+            On Error GoTo ErrHandler
+         col = 2
+         For x = LBound(SQLQuery) To UBound(SQLQuery)
+            'x = 1
+            ReDim arrRecord(x + 1)
+            Set rs = cn.Execute(SQLQuery(x), , adCmdText)
+            
+            'Pass recordset to a variant variable (array if needed)
+            arrRecord = rs.GetRows
+            Cells(cell.Row, col).Value = arrRecord
+            col = col + 1
+         Next x
+         
+            Set rs = Nothing
+            Set cn = Nothing
+            Set rs = Nothing
+    Next cell
+
+    Unload Progress
+    Application.ScreenUpdating = True
+    
+        finish = Timer
+        MsgBox (Start - finish) & " seconds have elapsed."
+    Exit Sub
+'ErrFileNotFound:
+'        Unload Progress
+'        MsgBox "File" & strPath & "was not found." & vbNewLine & "Please re-check the address and confirm if the file exists in the location."
+'    Exit Sub
+    
+ErrHandler:
+    Unload Progress
+    Dim strMsg As String
+        strMsg = "Error " & Err.Number & " (" & Err.Description _
+        & ")"
+        MsgBox strMsg
+    Exit Sub
+End Sub
