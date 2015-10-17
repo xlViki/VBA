@@ -1,33 +1,31 @@
+'Add Reference to Microsoft Visual Basic for Application Extensibility in Tools > References
+
 1. '//Determine full path and Globally Unique Identifier (GUID)
      'to each referenced library.  Select the reference in the Tools\References
      'window, then run this code to get the information on the reference's library
 
 	Sub ListReferencePaths()
-	     'Macro purpose:  To determine full path and Globally Unique Identifier (GUID)
-	     'to each referenced library.  Select the reference in the Tools\References
-	     'window, then run this code to get the information on the reference's library
-	     
+
 	    On Error Resume Next
 	    Dim ws As Worksheet, i As Long
-	    Set ws = ThisWorkbook.Sheets(4)
+	    Set ws = ThisWorkbook.Sheets.Add
 	    
 	    With ws
-	        .Cells.Clear
 	        .Range("A1") = "Reference name"
 	        .Range("B1") = "Full path to reference"
 	        .Range("C1") = "Reference GUID"
+	        .Range("D1") = "Version"
 	    End With
 	    For i = 1 To ThisWorkbook.VBProject.References.Count
 	        With ThisWorkbook.VBProject.References(i)
 	            ws.Range("A65536").End(xlUp).Offset(1, 0) = .Name
 	            ws.Range("A65536").End(xlUp).Offset(0, 1) = .FullPath
 	            ws.Range("A65536").End(xlUp).Offset(0, 2) = .GUID
+	            ws.Range("A65536").End(xlUp).Offset(0, 3) = .Major & "." & .Minor
 	        End With
 	    Next i
 	    On Error GoTo 0
 	End Sub
-
-
 
 
 2. // Add a reference to the project using the GUID for the Reference library
@@ -43,8 +41,7 @@
 	        strGUID(1) = "{0D452EE1-E08F-101A-852E-02608C4D0BB4}" 'Forms 2.0
 	        strGUID(2) = "{000204EF-0000-0000-C000-000000000046}" 'VBA 7
 	        strGUID(3) = "{00020813-0000-0000-C000-000000000046}" 'Excel 15
-	        
-	        
+
 	        'Set to continue in case of error
 	        On Error Resume Next
 	        
