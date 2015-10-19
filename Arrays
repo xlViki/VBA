@@ -1,0 +1,12 @@
+1. '//Create and pass an Array
+    Sub SubRoutine()
+      ProcessArray CreateArray
+    End Sub
+    
+    Function ProcessArray(Arr As Variant) As Variant
+    End Function
+    
+    Function CreateArray() As Variant
+      Dim Array1(1 To 4) As Variant
+      CreateArray = Array1
+    End Function
