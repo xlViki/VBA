@@ -193,3 +193,35 @@
         GetFolder = sItem
         Set fldr = Nothing
       End Function
+
+11. '//Export range as temp image and paste to Footer to evade character limit
+
+    Sub CopyFootnotesAndSaveAsImageToGetAroundTheStupidCharacterLimitInExcelFooters()
+  
+    Dim objPic As Shape
+    Dim objChart As Chart
+    
+    ActiveWindow.DisplayGridlines = False
+    Call Sheets(2).Range("R17", "T19").CopyPicture(xlScreen, xlPicture)
+    ActiveWindow.DisplayGridlines = True
+    
+    Sheets(2).Shapes.AddChart
+    Sheets(2).Activate
+    Sheets(2).Shapes.Item(1).Select
+    
+    Set objChart = ActiveChart
+    ActiveChart.Parent.Name = "FooterChart"
+    
+    objChart.Paste
+    Selection.Name = "FooterImage"
+    ActiveSheet.ChartObjects("FooterChart").Activate
+    
+    Sheets(2).Shapes.Item(1).Line.Visible = msoFalse
+    Sheets(2).Shapes.Item(1).Height = Range("R17", "T19").Height
+    Sheets(2).Shapes.Item(1).Width = Range("R17", "T19").Width
+    ActiveChart.Shapes.Range(Array("FooterImage")).Height = Range("R17", "T19").Height
+    ActiveChart.Shapes.Range(Array("FooterImage")).Width = Range("R17", "T19").Width
+    
+    objChart.Export ("D:\Temp.jpg")
+    
+    End Sub   
