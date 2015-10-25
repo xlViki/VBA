@@ -1,0 +1,9 @@
+1. '//Saving VBA Settings to registry
+
+  Global myVariable as Integer
+  Sub GetMyVariable
+    myVariable = GetSetting("MyApplication", "MySettings", "myVariable", "0")
+  End Sub
+  Sub SaveMyVariable(newValue as Integer)
+    call SaveSetting("MyApplication", "MySettings", "myVariable", newValue)
+  End Sub
