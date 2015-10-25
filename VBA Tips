@@ -7,3 +7,52 @@
   Sub SaveMyVariable(newValue as Integer)
     call SaveSetting("MyApplication", "MySettings", "myVariable", newValue)
   End Sub
+
+2. '//List Macro shortcuts assigned using the Macro Dialog box
+
+  Option Explicit
+  'MUST set to Trust Access to the VBA Project Object Model
+  '  in Excel Options
+  'Set reference to:
+  'Microsoft Visual Basic for Applications Extensibility
+  'Microsoft Scripting Runtime
+  'Microsoft VBScript Regular Expressions 5.5
+  Sub MacroShortCutKeys()
+      Dim VBProj As VBIDE.VBProject
+      Dim VBComp As VBIDE.VBComponent
+      Dim CodeMod As CodeModule
+      Dim LineNum As Long
+      Dim ProcKind As VBIDE.vbext_ProcKind
+      Dim sProcName As String, sShortCutKey As String
+      Const FN As String = "C:\Temp\Temp.txt"
+      Dim S As String
+      Dim FSO As FileSystemObject
+      Dim TS As TextStream
+      Dim RE As RegExp, MC As MatchCollection, M As Match
+  
+  Set RE = New RegExp
+  With RE
+      .Global = True
+      .IgnoreCase = True
+      .Pattern = "Attribute\s+(\w+)\.VB_ProcData\.VB_Invoke_Func = ""(\S+)(?=\\)"
+  End With
+  
+  Set FSO = New FileSystemObject
+  Set VBProj = ActiveWorkbook.VBProject
+  For Each VBComp In VBProj.VBComponents
+      Select Case VBComp.Type
+          Case Is = vbext_ct_StdModule
+              VBComp.Export FN
+              Set TS = FSO.OpenTextFile(FN, ForReading, Format:=TristateFalse)
+              S = TS.ReadAll
+              TS.Close
+              FSO.DeleteFile (FN)
+              If RE.Test(S) = True Then
+                  Set MC = RE.Execute(S)
+                  For Each M In MC
+                      Debug.Print VBComp.Name, M.SubMatches(0), M.SubMatches(1)
+                  Next M
+              End If
+      End Select
+  Next VBComp
+  End Sub
