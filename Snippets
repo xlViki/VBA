@@ -225,3 +225,20 @@
     objChart.Export ("D:\Temp.jpg")
     
     End Sub   
+
+12. '//Save New version of Activeworkbook at the same location
+  Sub SaveNewVersion()
+    Dim fileName As String, index As Long, ext As String
+    arr = Split(ActiveWorkbook.Name, ".")
+    ext = arr(UBound(arr))
+    If InStr(ActiveWorkbook.Name, "_v") = 0 Then
+         
+        fileName = ActiveWorkbook.Path & "\" & Left(ActiveWorkbook.Name, InStr(ActiveWorkbook.Name, ".") - 1) & "_v1." & ext
+        ActiveWorkbook.SaveAs (fileName)
+    Else
+        index = CInt(Split(Right(ActiveWorkbook.Name, Len(ActiveWorkbook.Name) - InStr(ActiveWorkbook.Name, "_v") - 1), ".")(0))
+        index = index + 1
+        fileName = ActiveWorkbook.Path & "\" & Left(ActiveWorkbook.Name, InStr(ActiveWorkbook.Name, "_v") - 1) & "_v" & index & "." & ext
+    End If
+    ActiveWorkbook.SaveAs (fileName)
+End Sub
