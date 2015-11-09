@@ -1,0 +1,58 @@
+1. '//List all runtime errors in Excel
+
+Private WS As Worksheet
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+' Gets all the built-in runtime Errors: codes and descriptions
+' Outputs them in the 1st Worksheet
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Public Sub GetErrorList()
+    
+    ' clear and initiate the output worksheet
+    Set WS = ThisWorkbook.Sheets(1)
+    WS.Cells.Clear
+    Output 1, "Error Number", "Error Description"
+    
+    ' get the message for user-defined errors
+    Dim UDErrNo As Integer: UDErrNo = 95
+    Dim UDErrMsg As String
+    On Error Resume Next
+    Err.Raise UDErrNo
+    UDErrMsg = Err.Description
+    On Error GoTo 0
+    
+    ' test all error numbers and keep built-in errors
+    Dim ErrNo As Long, MaxErrNo As Long
+    Dim ErrMsg As String
+    Dim Row As Long: Row = 2
+    'MaxErrNo = 2 ^ 16 - 1 ' 65535
+    MaxErrNo = 1000
+    For ErrNo = 1 To MaxErrNo
+        On Error Resume Next
+        Err.Raise ErrNo
+        ErrMsg = Err.Description
+        On Error GoTo 0 ' clears Err object
+        If ErrMsg <> UDErrMsg Or ErrNo = UDErrNo Then
+            Output Row, ErrNo, ErrMsg
+            Row = Row + 1
+        End If
+    Next ErrNo
+    
+    MsgBox (Row - 1) & " built-in errors found"
+    
+End Sub
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+' Writes the specified error code and description respectively
+' in 1st and 2nd columns of the specified row
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Private Sub Output(Row As Long, ErrNo, ErrMsg As String)
+    If WS Is Nothing Then Exit Sub
+    With WS
+        .Cells(Row, 1) = ErrNo
+        .Cells(Row, 2) = ErrMsg
+    End With
+End Sub
+
+
+2. '//
