@@ -1,4 +1,4 @@
-'# Create new PivotCache and PivotTable
+1. // Create new PivotCache and PivotTable from Excel Range
 
 Sub xlTest()
 
@@ -10,5 +10,33 @@ ptCache.CreatePivotTable TableDestination:="Sheet2!" & Range("A1").Address(Refer
 
 ActiveWorkbook.RefreshAll
 
+End Sub
+
+2. // Create new PivotCache and PivotTable from PowerPivot Data Model
+
+Sub InsertPowerPivotTable()
+   Dim pc As PivotCache
+   Dim pt As PivotTable
+
+   ' Create new cache
+   Set pc = ThisWorkbook.PivotCaches.Create( _
+   SourceType:=xlExternal, _
+   SourceData:=ThisWorkbook.Connections("ThisWorkbookDataModel"), _
+   Version:=xlPivotTableVersion15)
+
+   ' Create PivotTable
+   Set pt = pc.CreatePivotTable( _
+   TableDestination:=ActiveCell, _
+   DefaultVersion:=xlPivotTableVersion15)
+
+   ' Settings for new PowerPivotTable
+   With pt
+     .RowAxisLayout xlTabularRow
+     .HasAutoFormat = False
+   End With
+   
+   ' Cleanup
+   Set pt = Nothing
+   Set pc = Nothing
 End Sub
 
