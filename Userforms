@@ -1,0 +1,9 @@
+1. '//Acept only numbers in a Textbox in Userform
+    Private Sub TextBox1_KeyPress(ByVal KeyAscii As MSForms.ReturnInteger)
+      Select Case KeyAscii
+           Case 46, 48 To 57
+           Case Else
+             KeyAscii = 0
+             MsgBox "Only numbers allowed"
+      End Select
+    End Sub
