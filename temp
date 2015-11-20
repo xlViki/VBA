@@ -1,0 +1,235 @@
+1// Option Compare Text
+Sub Rollforward()
+
+With Application
+    .ScreenUpdating = False
+    .DisplayAlerts = False
+    .AskToUpdateLinks = False
+End With
+
+Dim wdFilepath As String, xlFilepathOld As String, xlFilepathNew As String
+Dim WordApp As Object
+Dim WordDoc As Object
+Dim ExcelDoc As Workbook
+Dim UpdateLinks As Boolean, arrRng() As Variant, i As Long, j As Long, t As Single
+Dim fieldCnt As Long
+
+t = Timer
+
+Set ws = ThisWorkbook.Sheets("Rollforward")
+    lrow = ws.Range("C" & rows.Count).End(xlUp).Row
+    arrRng = ws.Range("B2:D" & lrow).Value
+          
+Call ProgressBar.ProgressBar
+For i = LBound(arrRng) To UBound(arrRng)
+        
+        xlFilepathOld = arrRng(i, 1)
+        xlFilepathNew = arrRng(i, 2)
+        wdFilepath = arrRng(i, 3)
+              
+        '// Create an Instance of Word
+        On Error Resume Next
+            Set WordApp = GetObject(Class:="Word.Application") 'check if WordApp is already open
+            Err.Clear  'Clear the error between errors
+            If WordApp Is Nothing Then Set WordApp = CreateObject(Class:="Word.Application") 'open if not already open
+          
+        '// Handle if the WordApp is not found
+            If Err.Number = 429 Then
+              MsgBox "Word could not be found, aborting."
+              Exit Sub
+            End If
+         On Error GoTo ErrHandler
+                
+        Set ExcelDoc = Workbooks.Open(xlFilepathNew) '(Left(wdFilepath, InStr(wdFilepath, ".doc") - 1) & ".xlsx") '###Testing###
+        
+        UpdateLinks = WordApp.Options.UpdateLinksAtOpen       'capture the original value
+        With WordApp.Options
+            .UpdateLinksAtOpen = False 'temporarily disable
+            .WarnBeforeSavingPrintingSendingMarkup = False 'To disable pop-up while saving commented docs
+        End With
+        
+        '// Open the workbook and update all the links
+        Set WordDoc = WordApp.Documents.Open(wdFilepath)
+                
+        fieldCnt = WordDoc.Fields.Count
+        
+        Call ProgressBar.ProgressBarUpdate(i, UBound(arrRng) + 1, WordDoc.Name, "Replacing Excel links in Word Files")
+        For j = 1 To fieldCnt
+            'Debug.Print "Field"& j & vbtab & WordDoc.Fields(j).Type
+            With WordDoc.Fields(j)
+                If .Type = 56 And .LinkFormat.SourceFullName = xlFilepathOld Then 'only update Excel links.
+                    .LinkFormat.SourceFullName = xlFilepathNew
+                    .Update
+                    .LinkFormat.AutoUpdate = False
+                    'DoEvents
+                End If
+            End With
+        Next j
+        
+        '// Save the Document
+        WordDoc.Save
+        WordDoc.Close
+        ExcelDoc.Close False
+            
+        '// Reset the previous value
+        WordApp.Options.UpdateLinksAtOpen = UpdateLinks
+                 
+Next i
+Unload Progress
+WordApp.Quit
+
+MsgBox "Links have been successfully directed to new file in " & CInt((Timer - t) / 60) & " minutes and " & (Timer - t) Mod 60 & "seconds."
+
+ExitHandler:
+Unload Progress
+With Application
+    .StatusBar = False
+    .ScreenUpdating = True
+    .DisplayAlerts = True
+    .AskToUpdateLinks = True
+End With
+
+Exit Sub
+        
+ErrHandler:
+Select Case Err.Number
+    Case 5391 'Could not find Range (or range name)
+        MsgBox "Could not find the associated Excel range for one or more links in this document. " & _
+            "Please make sure that you have selected a valid excel file.", vbCritical
+
+    Case Else
+        MsgBox "Error " & Err.Number & ": " & Err.Description, vbCritical
+End Select
+Resume ExitHandler
+End Sub
+
+
+2.//
+Public Const wdExportAllDocument = 0
+Public Const wdExportFormatPDF = 17
+
+Sub UpdateLinks()
+
+With Application
+    .ScreenUpdating = False
+    .DisplayAlerts = False
+    .AskToUpdateLinks = False
+    .Calculation = xlCalculationManual
+    .EnableEvents = False
+End With
+
+Dim wdFilepath As String, xlFilepath As String, WordApp As Object, WordDoc As Object, ExcelDoc As Workbook
+Dim UpdateLinks As Boolean, PDFOpen As Boolean, t As Single, arrRng() As Variant, i As Long, j As Long
+Dim fieldCnt As Long, wb As Object, collWbPath As Collection, collWb As Collection
+
+t = Timer
+
+Set ws = ThisWorkbook.Sheets("RefreshWord")
+    lrow = ws.Range("E" & rows.Count).End(xlUp).Row
+    arrRng = ws.Range("B2:E" & lrow).Value
+          
+Call ProgressBar.ProgressBar
+For i = LBound(arrRng) To UBound(arrRng)
+        
+        wdFilepath = arrRng(i, 4) 'Word file path
+        
+        '// Create an Instance of Word
+        On Error Resume Next
+            Set WordApp = GetObject(Class:="Word.Application") 'check if WordApp is already open
+            Err.Clear  'Clear the error between errors
+            If WordApp Is Nothing Then Set WordApp = CreateObject(Class:="Word.Application") 'open if not already open
+          
+        '// Handle if the WordApp is not found
+            If Err.Number = 429 Then
+              MsgBox "Word could not be found, aborting."
+              Exit Sub
+            End If
+         On Error GoTo ErrHandler
+         
+        UpdateLinks = WordApp.Options.UpdateLinksAtOpen 'capture the original value
+        WordApp.Options.UpdateLinksAtOpen = False 'temporarily disable
+        
+        '// Open the workbook
+        Set WordDoc = WordApp.Documents.Open(wdFilepath)
+        
+        Call ProgressBar.ProgressBarUpdate(i, UBound(arrRng) + 1, WordDoc.Name, "Refreshing Word Files")
+        
+        '// Refresh Word File, if opted
+        If arrRng(i, 1) = "Yes" Then
+            Set collWbPath = New Collection 'collection for linked workbook paths
+            Set collWb = New Collection       'collection for linked workbook objects
+            
+            '//Loop in all linked tables and open linked workbooks
+            fieldCnt = WordDoc.Fields.Count
+            For j = 1 To fieldCnt
+                'Debug.Print "Field"& j & vbtab & WordDoc.Fields(j).Type
+                With WordDoc.Fields(j)
+                    If .Type = 56 Then 'Save paths for for Excel links only
+                        xlFilepath = .LinkFormat.SourceFullName
+                        On Error Resume Next
+                        collWbPath.Add xlFilepath, CStr(xlFilepath)
+                        Debug.Print collWbPath.Count & vbTab & "Field: " & j
+                        On Error GoTo 0
+                     End If
+                End With
+            Next j
+            
+            If Not collWbPath Is Nothing Then
+                
+                'Open linked workbooks
+                For Each strFile In collWbPath
+                    collWb.Add Workbooks.Open(strFile, ReadOnly = True), CStr(strFile)
+                Next
+            
+                'Update all linked tables and save the Word Doc
+                WordDoc.Fields.Update
+                WordDoc.Save
+            
+                'Close all the open linked Workbooks
+                For Each wb In collWb
+                    wb.Close False
+                Next
+                
+             End If
+         End If
+        
+        '// Print to PDF, if opted
+        If arrRng(i, 2) = "Yes" Then
+           If arrRng(i, 3) = "Yes" Then PDFOpen = True Else PDFOpen = False 'Open PDF after creation?
+           WordDoc.ExportAsFixedFormat ExportFormat:=wdExportFormatPDF, OutputFilename:= _
+                Left(wdFilepath, InStr(wdFilepath, ".doc") - 1) & ".pdf", IncludeDocProps:=True, _
+                 Range:=wdExportAllDocument, From:=1, To:=1, OpenAfterExport:=PDFOpen
+        End If
+        
+        '// Close the Document
+        WordDoc.Close
+        
+        '// Reset the previous value
+        WordApp.Options.UpdateLinksAtOpen = UpdateLinks
+              
+Next i
+
+Unload Progress
+WordApp.Quit
+
+MsgBox "Links updated in " & CInt((Timer - t) / 60) & " minutes and " & (Timer - t) Mod 60 & " seconds."
+
+ExitHandler:
+Unload Progress
+With Application
+    .StatusBar = False
+    .ScreenUpdating = True
+    .DisplayAlerts = True
+    .AskToUpdateLinks = True
+    .Calculation = xlCalculationAutomatic
+    .EnableEvents = True
+End With
+Exit Sub
+        
+ErrHandler:
+MsgBox "Error " & Err.Number & ": " & Err.Description, vbCritical
+Resume ExitHandler
+
+End Sub
+
+
