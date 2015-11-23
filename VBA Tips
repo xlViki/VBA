@@ -8,7 +8,21 @@
     call SaveSetting("MyApplication", "MySettings", "myVariable", newValue)
   End Sub
 
-2. '//List Macro shortcuts assigned using the Macro Dialog box
+
+2. '// Break VBA Project Passwords
+
+  To crack a 2007/2010 Excel VBA password:
+    1. Change .xlsm extension to .zip
+    2. Open the zipped folder and navigate into the “xl” folder
+    3. Extract the vbaProject.bin file and open it in a Hex Editor (NPP has a plugin)
+    4. Search for “DPB” and replace with “DPx”
+    5. Replace the old vbaProject file with this new on in the zip folder (and re-zip)
+    6. Change the file extension back to .xlsm
+    7. Open workbook and ignore all warning messages
+    8. Export the code modules and then re-add them (delete the old ones), or just add a new paswword for the project.
+
+
+3. '//List Macro shortcuts assigned using the Macro Dialog box
 
   Option Explicit
   'MUST set to Trust Access to the VBA Project Object Model
