@@ -1,3 +1,19 @@
 1. '// User Desktop
   
-  strSave = Environ("USERPROFILE") & "\Desktop\"
+    strSave = Environ("USERPROFILE") & "\Desktop\"
+
+2. '//Windows API Function to get Username
+    
+    'API Declare
+    Declare Function Get_User_Name Lib "advapi32.dll" Alias _
+    "GetUserNameA" (ByVal lpBuffer As String, _
+    nSize As Long) As Long
+  
+    'API Call
+    Public Function GetUserName() As String
+      Dim lpBuff As String * 25
+      Get_User_Name lpBuff, 25
+      GetUserName = Left(lpBuff, InStr(lpBuff, Chr(0)) - 1)
+    End Function
+    
+3. '//
