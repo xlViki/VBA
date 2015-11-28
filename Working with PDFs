@@ -1,0 +1,121 @@
+Option Explicit
+'Ref to ACROBAT
+ 
+Function getPageFromDoc(xFile As String, pnum As Integer, SaveAsFile As String, XnoType As Integer) As Variant
+'Working code; Tested;
+Dim returnx(1 To 2) As String
+getPageFromDoc = False
+Dim AcroApp As Acrobat.AcroApp
+Dim mypdf1 As Acrobat.AcroPDDoc
+Dim doc2 As Acrobat.AcroPDDoc
+Set AcroApp = CreateObject("AcroExch.App")
+Set mypdf1 = CreateObject("AcroExch.PDDoc")
+Set doc2 = CreateObject("AcroExch.PDDoc")
+mypdf1.Open (xFile)
+ 
+If pnum - 1 > mypdf1.GetNumPages - 1 Then
+returnx(1) = "xGreater"
+End If
+ 
+If XnoType = 1 Then
+Select Case pnum ' (2 means 1)
+ 
+Case 1
+'mypdf1.DeletePages 0, 0
+'Do nothing as first page is required
+ 
+Case Is > 1
+mypdf1.DeletePages 0, pnum - 2
+End Select
+ 
+Else
+'from 2 to last; as the first code has remove the first part of it;
+mypdf1.DeletePages 1, mypdf1.GetNumPages - 1
+End If
+ 
+returnx(2) = "Executed"
+'Save as and open again - -
+mypdf1.Save 1, SaveAsFile
+mypdf1.Close
+Set mypdf1 = Nothing
+Set AcroApp = Nothing
+getPageFromDoc = True
+getPageFromDoc = returnx()
+End Function
+ 
+ 
+Function GetPdfPgFrDoc(GetPage As Integer, sourceFilenme As String, destifilnm As String) As Boolean
+Dim TempFile As String
+Dim j As Variant, k As Variant
+GetPdfPgFrDoc = False
+TempFile = Environ("temp") & "temppdf.pdf"
+j = getPageFromDoc(sourceFilenme, GetPage, TempFile, 1)
+ 
+If j(1) "xGreater" Then
+k = getPageFromDoc(TempFile, GetPage, destifilnm, 2)
+If j(2) = "Executed" Then
+GetPdfPgFrDoc = True
+End If
+ 
+Else
+GetPdfPgFrDoc = False
+End If
+ 
+End Function
+ 
+ 
+'Usage;
+Sub TestUsage()
+Dim sourceFile As String
+Dim destinationFile As String
+Dim pageRet As Integer
+pageRet = 2
+sourceFile = "H:appsxpDesktoppages.pdf"
+destinationFile = "H:appsxpDesktoppagesK.pdf"
+MsgBox GetPdfPgFrDoc(pageRet, sourceFile, destinationFile)
+End Sub
+ 
+ 
+Function CombineTwoFilesxPDF(mypdf1FileName As String, insertafterpageNo As Integer, mypdf2FileName As String, StPge As Integer, NoOfPgsAfterStPge As Integer, Finalpdf As String) As Boolean
+Dim AcroApp As Acrobat.AcroApp, mypdf1 As Acrobat.AcroPDDoc, mypdf2 As Acrobat.AcroPDDoc
+ 
+Set AcroApp = CreateObject("AcroExch.App")
+Set mypdf1 = CreateObject("AcroExch.PDDoc")
+Set mypdf2 = CreateObject("AcroExch.PDDoc")
+ 
+CombineTwoFilesxPDF = False
+ 
+mypdf1.Open (mypdf1FileName)
+mypdf2.Open (mypdf2FileName)
+ 
+ 
+If mypdf1.InsertPages(insertafterpageNo, mypdf2, StPge, NoOfPgsAfterStPge, 0) Then
+CombineTwoFilesxPDF = True
+End If
+ 
+mypdf1.Save 1, Finalpdf
+mypdf2.Close
+mypdf1.Close
+ 
+ 
+Set mypdf1 = Nothing
+Set mypdf2 = Nothing
+Set AcroApp = Nothing
+End Function
+ 
+ 
+Sub UsageCombineDocs_specificPages()
+Dim cFile As String
+Dim dFile As String
+Dim eFile As String
+Dim InsAfterPage As Integer
+Dim x
+ 
+InsAfterPage = 2 'Which is after 3rd page;
+cFile = "H:appsxpDesktopc.pdf"
+dFile = "H:appsxpDesktopd.pdf"
+eFile = "H:appsxpDesktope.pdf"
+x = CombineTwoFilesxPDF(mypdf1FileName:=cFile, insertafterpageNo:=InsAfterPage, mypdf2FileName:=dFile, StPge:=2, NoOfPgsAfterStPge:=2, Finalpdf:=eFile)
+Debug.Print x
+End Sub
+ 
