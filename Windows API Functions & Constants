@@ -16,4 +16,8 @@
       GetUserName = Left(lpBuff, InStr(lpBuff, Chr(0)) - 1)
     End Function
     
-3. '//
+3. '//Make an entry in the Registry Editor to add a global Dictionary Object (without needing to define it)
+    Dim WshShell
+    Set WshShell =CreateObject("WScript.Shell")
+    WshShell.RegWrite "HKCU\Software\Mercury Interactive\QuickTest Professional\MicTest\ReservedObjects\GlobalDictionary\ProgID", "Scripting.Dictionary","REG_SZ"
+    Set WshShell = Nothing
