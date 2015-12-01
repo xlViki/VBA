@@ -242,3 +242,23 @@
     End If
     ActiveWorkbook.SaveAs (fileName)
 End Sub
+
+13. '//Change the ReadWrite Access of a User for a Workbook based on a password
+
+    Private Sub Workbook_Open()
+      ThisWorkbook.ChangeFileAccess xlReadOnly
+    End Sub
+  
+    Sub UnlockDeveloper()
+      Dim pwd As String
+      
+      pwd = InputBox("Enter developer password:", "Password")
+      
+      If pwd = "password" Then
+          If ThisWorkbook.ReadOnly = True Then
+              ThisWorkbook.ChangeFileAccess xlReadWrite
+          End If
+      Else
+          MsgBox ("Incorrect password.")
+      End If
+    End Sub
