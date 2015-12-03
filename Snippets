@@ -262,3 +262,13 @@ End Sub
           MsgBox ("Incorrect password.")
       End If
     End Sub
+
+14. '//Test if Data is filtered after Autofilter
+    Sub TestFiltered() 
+        Dim rngFilter As Range 
+        Dim r As Long, f As Long 
+        Set rngFilter = ActiveSheet.AutoFilter.Range 
+        r = rngFilter.Rows.Count 
+        f = rngFilter.SpecialCells(xlCellTypeVisible).Count 
+        If r > f Then MsgBox "Data is Filtered" 
+    End Sub 
