@@ -21,3 +21,20 @@
     Set WshShell =CreateObject("WScript.Shell")
     WshShell.RegWrite "HKCU\Software\Mercury Interactive\QuickTest Professional\MicTest\ReservedObjects\GlobalDictionary\ProgID", "Scripting.Dictionary","REG_SZ"
     Set WshShell = Nothing
+    
+4. '//API call to copy open files
+    Private Declare Function CopyFile Lib "kernel32" Alias "CopyFileA" _ 
+          (ByVal lpExistingFileName As String, _ 
+           ByVal lpNewFileName As String, _ 
+           ByVal bFailIfExists As Long) As Long 
+    ' Exposed function to copy open/closed files 
+    Public Function CopyOpenFile(FromFile As String, ToFile As String) 
+      Dim Results As Long 
+      Dim LErr As Long 
+      If Dir(FromFile) <> "" Then 
+         Results = CopyFile(FromFile, ToFile, False) 
+      Else 
+         Results = -1 
+      End If 
+         CopyOpenFile = Results 
+    End Function 
