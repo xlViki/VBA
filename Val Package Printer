@@ -1,0 +1,282 @@
+:Main
+Sub PrintPackages()
+
+Dim wsMapping As Worksheet, wsCover As Worksheet, wsCash As Worksheet, wsDebt As Worksheet, wsHedge As Worksheet, wsNAV As Worksheet
+Dim SaveFolder As String, SupportPDFPath As String, ModelPDFPath As String, MergedPDFPath As String
+Dim AllCashNames As Variant, AllDebtNames As Variant, arrFilterFields As Variant, QtrEndDate As Date
+
+With Application
+    .ScreenUpdating = False
+    .AskToUpdateLinks = False
+    .DisplayAlerts = False
+End With
+
+Set wsMapping = ThisWorkbook.Sheets("Mapping")
+Set wsCover = ThisWorkbook.Sheets("Cover")
+Set wsDebt = ThisWorkbook.Sheets("Debt (Dump)")
+Set wsHedge = ThisWorkbook.Sheets("Hedges")
+
+'//Transfer the mapping to an array which feeds to the 'Deals' collection
+lrow = wsMapping.Range("A" & rows.Count).End(xlUp).Row
+arrFiles = wsMapping.Range("A5:Q" & lrow)
+arrFilterFields = ThisWorkbook.Sheets("Macro Tab Names").Range("FilterField_Mapping")
+QtrEndDate = wsMapping.Range("F1")
+
+'//Specify the save folder for all packages
+SaveFolder = ThisWorkbook.Path & "\Packages"
+Call CreateFolder(SaveFolder)
+
+'//Create a Deals Collection and pass an array to it
+Dim pdl As DealProcess
+Set pdl = New DealProcess
+Set pdl.Deals = pdl.PopulateCollection(arrFiles)
+
+Call ProgressBar.ProgressBar
+
+Cnt = 1
+'//Loop only within the first row of each deal (rows with Model Path), alternate deal names will be picked later
+For Each dl In pdl.Deals
+        If dl.wbPath <> vbNullString Then
+        
+        '//Update ProgressBar
+        Call ProgressBar.ProgressBarUpdate(Cnt, pdl.PrintCount, dl.ShortDealName, "Printing Valuation Packages")
+            
+        '//Filter Support sheets(Cash, Debt, Hedges & NAV) for the current deal
+        Dim SupportSheets() As Variant, AllSheetNames() As Variant, AllDealNames() As Variant, FieldName As String, i As Long, j As Long
+        'Set Cash and NAV support sheets based on the fields in the mapping sheet
+        Set wsCash = ThisWorkbook.Sheets(dl.CashSheetName)
+        Set wsNAV = ThisWorkbook.Sheets(dl.NAVSheetName)
+        
+        'Get all alternate Cash, Debt and NAV names for the deal using the GetAllNames Method of the DealProcess Class
+        CashNames = pdl.GetAllNames(dl.DealNum, "Cash")
+        DebtNames = pdl.GetAllNames(dl.DealNum, "Debt")
+        NAVNames = pdl.GetAllNames(dl.DealNum, "NAV")
+        
+        'Create Arrays with all sheet names, Filter field names and alternate deal names
+        AllSheetNames = Array(wsCash.Name, wsDebt.Name, wsHedge.Name, wsNAV.Name)
+        AllDealNames = Array(CashNames, DebtNames, DebtNames, NAVNames) 'Array of arrays (Jagged arrays); element(1) = arr(1)(0)
+        
+        'Apply filters in all the support sheets and save all sheet names where data exists for the filter criteria(AllDealNames)
+        If ValModels.CheckSheetsExist(ThisWorkbook, AllSheetNames) = False Then
+            MsgBox "Sheet Not Found, Exiting Now!"
+            GoTo ExitHandler
+        Else
+            i = 0
+            For j = LBound(AllSheetNames) To UBound(AllSheetNames)
+                FieldName = Application.Index(arrFilterFields, Application.Match(AllSheetNames(j), Application.Index(arrFilterFields, 0, 1), 0), 2)
+                If ApplyFilters(AllSheetNames(j), FieldName, AllDealNames(j)(0)) = True Then
+                    ReDim Preserve SupportSheets(i)
+                    SupportSheets(i) = AllSheetNames(j)
+                    i = i + 1
+                End If
+            Next j
+        End If
+        'Add the code to hide/unhide columns in NAV sheet based on column subtotal
+        
+        'PrintOut Support Sheets
+        SupportPDFPath = SaveFolder & "\Support " & dl.DealNum & ".pdf"
+        Call PDFTools.ExportToPDF(ThisWorkbook, SupportSheets, SupportPDFPath)
+        
+        '//PrintOut Cover Sheet
+        wsCover.Range("B2").value = dl.ShortDealName
+        CoverPDFPath = SaveFolder & "\Cover " & dl.DealNum & ".pdf"
+        Call PDFTools.ExportToPDF(ThisWorkbook, wsCover.Name, CoverPDFPath)
+
+        '//Open relevant model and printOut given sheets
+        'ModelPDFPath = SaveFolder & "\Model " & dl.DealNum & ".pdf"
+        'If ValModels.PrintModels(dl.wbPath, dl.ModelSheets, ModelPDFPath) = False Then GoTo ExitHandler
+   
+        '//Combine PDFs
+        MergedPDFPath = SaveFolder & "\" & dl.ShortDealName & " - Val Pack" & ".pdf"
+        Call PDFTools.CombinePDFs(MergedPDFPath, CoverPDFPath, SupportPDFPath)  'Add ModelPDFPath
+        
+        '//Delete part PDFs
+        Call DeleteFile(CoverPDFPath)
+        'Call DeleteFile(ModelPDFPath)
+        Call DeleteFile(SupportPDFPath)
+        
+        Cnt = Cnt + 1
+    End If
+      '//Exit if Cancel button is pressed
+ If LCase(Progress.Tag) = "cancel" Then GoTo ExitHandler
+ 
+Next dl
+
+ExitHandler:
+Unload Progress
+With Application
+    .ScreenUpdating = True
+    .AskToUpdateLinks = True
+    .DisplayAlerts = True
+End With
+Application.Goto wsMapping.Range("A1")
+Exit Sub
+
+ErrorHandler:
+MsgBox "Error " & Err.Number & ": " & Err.Description, vbCritical
+Resume ExitHandler
+
+End Sub
+
+Function ApplyFilters(ByVal wsName As String, ByVal FieldName As String, AllCriteria As Variant) As Boolean
+
+Dim ws As Worksheet, FieldNum As Long, lrow As Long, FilterHeader As Range
+Set ws = ThisWorkbook.Sheets(wsName)
+
+'//RefreshAutoFilters
+With ws
+    .AutoFilterMode = False
+    Set FilterHeader = .UsedRange.Find(What:=FieldName, LookIn:=xlValues, LookAt:=xlWhole, MatchCase:=False, SearchFormat:=False)
+    If Not FilterHeader Is Nothing Then
+        lrow = .Cells(rows.Count, FilterHeader.Column).End(xlUp).Row
+        .Range(.rows(FilterHeader.Row), .rows(lrow)).AutoFilter
+    Else
+        MsgBox "Header Name: " & FieldName & " not found in Sheet: " & ws.Name
+    End If
+End With
+
+'//Apply Filters and return True if data is Filtered, i.e., data exists in table for filter criteria
+With ws
+    Set HeaderRange = .AutoFilter.Range.rows(1)
+    FieldNum = Application.WorksheetFunction.Match(FieldName, HeaderRange, 0)
+    .UsedRange.AutoFilter Field:=FieldNum, Criteria1:=AllCriteria, Operator:=xlFilterValues
+    
+    If .FilterMode = True And IsDataFiltered(ws, ws.Columns(FieldNum)) Then ApplyFilters = True
+    
+End With
+Set ws = Nothing
+End Function
+
+Function IsDataFiltered(ws As Worksheet, col As Range) As Boolean
+    Dim rngFilter As Range
+    Dim r As Long, f As Long
+    Set rngFilter = ws.AutoFilter.Range
+    r = rngFilter.rows.Count
+    On Error Resume Next
+    f = Application.Intersect(rngFilter, col).SpecialCells(xlCellTypeVisible).Count
+    'Debug.Print f
+    On Error GoTo 0
+    If f > 1 Then
+        IsDataFiltered = True
+    Else
+        IsDataFiltered = False
+    End If
+End Function
+
+Private Sub CreateFolder(ByVal FolderPath As String)
+    On Error Resume Next
+    MkDir FolderPath
+    On Error GoTo 0
+End Sub
+
+Private Sub DeleteFile(ByVal FilePath As String)
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    If fso.FileExists(FilePath) Then
+        fso.DeleteFile FilePath, True
+    Else
+        MsgBox "Specified File Not Found", vbInformation, "Not Found!"
+    End If
+End Sub
+
+
+
+
+PDFTools:
+Sub ExportToPDF(wb As Workbook, wsName As Variant, ByVal SavePath As String)
+
+wb.Sheets(wsName).Select
+ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:=SavePath, Quality:=xlQualityStandard, _
+        IncludeDocProperties:=True, IgnorePrintAreas:=False, OpenAfterPublish:=False
+
+wb.Sheets(1).Activate
+End Sub
+ 
+Sub CombinePDFs(MergedFilePath As String, ParamArray PartFiles() As Variant)
+
+Dim AcroApp As Object
+Dim pdf1 As Object
+Dim pdf2 As Object
+Dim numPages As Integer
+
+Set AcroApp = CreateObject("AcroExch.App")
+Set pdf1 = CreateObject("AcroExch.PDDoc")
+Set pdf2 = CreateObject("AcroExch.PDDoc")
+
+pdf1.Open (PartFiles(0))
+ 
+For i = 1 To UBound(PartFiles) 'The 0 element is pdf1, so we start with 1
+    pdf2.Open (PartFiles(i))
+    numPages = pdf1.GetNumPages()
+    
+    If pdf1.InsertPages(numPages - 1, pdf2, 0, pdf2.GetNumPages(), True) = False Then
+        MsgBox "Cannot insert pages"
+    End If
+   
+    If pdf1.Save(1, MergedFilePath) = False Then 'PDFSaveFull=1
+        MsgBox "Cannot save the modified document"
+    End If
+   pdf2.Close
+Next i
+
+pdf1.Close
+pdf2.Close
+AcroApp.Exit
+Set AcroApp = Nothing
+Set pdf1 = Nothing
+Set pdf2 = Nothing
+
+End Sub
+
+
+:ValModels
+Function PrintModels(ByVal wbPath As String, SheetsToPrint As Variant, SavePath As String) As Boolean
+
+Dim nWb As Workbook, SheetsExist
+Set nWb = Workbooks.Open(wbPath, ReadOnly:=True)
+
+If CheckSheetsExist(nWb, SheetsToPrint) = True Then
+
+   '//Loop in the given sheets and remove all non-black fonts and all cell highlights except blue and gray for the section headers
+   For i = LBound(SheetsToPrint) To UBound(SheetsToPrint)
+        
+        nWb.Sheets(SheetsToPrint(i)).Select
+        For Each cell In ActiveSheet.Range("Print_Area")
+            If cell.Interior.ColorIndex <> 41 And cell.Interior.ColorIndex <> 15 Then
+               cell.Interior.Color = xlNone
+            End If
+            If cell.Font.Color <> 0 And cell.Font.Color <> 16777215 Then
+               cell.Font.Color = 0
+            End If
+        Next cell
+        ActiveSheet.Range("Print_Area").BorderAround , xlThin
+        
+    Next i
+
+    Call PDFTools.ExportToPDF(nWb, SheetsToPrint, SavePath)
+    PrintModels = True 'Printed successfully
+End If
+nWb.Close False
+
+End Function
+
+Function CheckSheetsExist(ByRef wb As Workbook, ShtNames As Variant) As Boolean
+Dim ws As Worksheet, sht As Variant
+
+CheckSheetsExist = True
+For Each sht In ShtNames
+    Set ws = Nothing
+    On Error Resume Next
+    Set ws = wb.Sheets(sht)
+    On Error GoTo 0
+
+    If ws Is Nothing Then
+        CheckSheetsExist = False
+        MsgBox "Sheet """ & sht & """ doesn't exist, please check workbook: " & wb.FullName
+        Exit For
+    End If
+Next sht
+
+End Function
+
