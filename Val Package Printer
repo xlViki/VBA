@@ -71,7 +71,13 @@ For Each dl In pdl.Deals
                 End If
             Next j
         End If
-        'Add the code to hide/unhide columns in NAV sheet based on column subtotal
+        'Add the code to hide/unhide columns in NAV sheet based on sum of column
+        If wsNAV.Name = "NAV IA" Then
+            For Each col In wsNAV.Columns("E:K")
+                col.Hidden = False
+                If WorksheetFunction.Sum(Application.Intersect(col, wsNAV.AutoFilter.Range.SpecialCells(xlCellTypeVisible))) = 0 Then col.Hidden = True
+            Next
+        End If
         
         'PrintOut Support Sheets
         SupportPDFPath = SaveFolder & "\Support " & dl.DealNum & ".pdf"
