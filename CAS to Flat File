@@ -1,0 +1,149 @@
+Option Compare Text
+Sub CreatePerfSummaryFlatFile()
+
+Application.ScreenUpdating = False
+Application.AskToUpdateLinks = False
+Application.DisplayAlerts = False
+
+Dim wbPerfSum As Workbook, wsOutput As Worksheet
+
+'// Get the row numbers for each section
+FundName = ThisWorkbook.Sheets("Main").Range("B1").Value
+RowCommitment = ThisWorkbook.Sheets("Main").Range("B3").Value 'FindRowforText("Investments - Realized / Partially Realized", ws)
+RowHeader = ThisWorkbook.Sheets("Main").Range("B4").Value  'FindRowforText("Investments - Unrealized", ws)
+RowGrandtotal = ThisWorkbook.Sheets("Main").Range("B5").Value
+
+SourceFileName = Application.GetOpenFilename
+If SourceFileName = "False" Then Exit Sub
+
+'Set the header row in the Output Sheet
+Set wsOutput = Workbooks.Add.Sheets(1)
+wsOutput.Range("A1:U1").Value = Array("Fund", "LP", "Partner Currency", "Funding Date", "Investment", _
+                                "Initial Equity (Fund)", "Return of Capital (Fund)", "Current Equity (Fund)", _
+                                "Unrealized Appreciation (Fund)", "Unrealized Value (Fund)", _
+                                "Investment Percentage (LP)", "Initial Equity (LP)", "Return of Capital (LP)", "Current Equity (LP)", _
+                                "Unrealized Appreciation (LP)", "Unrealized Value (LP)", _
+                                "Capital Commitment", "Capital Contributed", "Add back: Return of Capital", "Less: Part Exp.", "UCC")
+
+Set wbPerfSum = Workbooks.Open(SourceFileName)
+For ShtCnt = 2 To wbPerfSum.Sheets.Count
+    arrData = GetDataFromSheet(wbPerfSum.Sheets(ShtCnt), ShtCnt, FundName, RowCommitment, RowHeader, RowGrandtotal)
+    
+    FreeRow = wsOutput.Range("A" & Rows.Count).End(xlUp).Row + 1
+    For j = LBound(arrData) To UBound(arrData)
+        wsOutput.Range("A" & FreeRow).Resize(1, 21) = arrData(j)
+        FreeRow = FreeRow + 1
+    Next j
+Next ShtCnt
+
+wbPerfSum.Close False
+
+'Format the output sheet
+wsOutput.Range("F2:U" & FreeRow).NumberFormat = "##,###.00"
+wsOutput.Range("K2:K" & FreeRow).NumberFormat = "0.0%"
+
+Application.ScreenUpdating = True
+Application.AskToUpdateLinks = True
+Application.DisplayAlerts = True
+
+End Sub
+
+Function GetDataFromSheet(ws As Worksheet, ByVal ShtCnt As Long, ByVal FundName As String, ByVal RowCommitment As Long, _
+        ByVal RowHeader As Long, ByVal RowGrandtotal As Long) As Variant
+ 
+Dim LPName As String
+Dim arrTemp() As Variant
+
+'// Load all the data in an array
+With ws
+    LPName = .Range("A2").Value
+    If .Range("V7").Value = "USD Denominated" Then
+        PartnerCurrency = "USD"
+    Else
+        PartnerCurrency = "EUR"
+    End If
+  
+    'Get the Partner commitment section in the array
+    Rw = RowCommitment
+    If .Range("F" & Rw).Value <> vbNullString Then
+        ReDim Preserve arrTemp(i)
+        arrTemp(i) = Array(FundName, LPName, PartnerCurrency, "", "Partner Commitment", "", "", "", "", "", "", "", "", "", "", "", .Range("F" & Rw).Value, .Range("F" & Rw + 1).Value, _
+                        .Range("F" & Rw + 2).Value, .Range("F" & Rw + 3).Value, .Range("F" & Rw + 4).Value)
+        i = i + 1
+    End If
+   'Get the Partner section in the array
+   CntTotal = 0
+   For Rw = RowHeader + 1 To RowGrandtotal
+        Select Case .Range("D" & Rw).Value
+            Case vbNullString
+                'Do nothing
+            Case Else
+                If .Range("D" & Rw).Value Like "*Total*" Then
+                    bTotal = True
+                    CntTotal = CntTotal + 1
+                Else
+                    bTotal = False
+                End If
+                
+                ReDim Preserve arrTemp(i)
+                arrTemp(i) = PassToArray(Rw, ws, FundName, LPName, PartnerCurrency, bTotal, CntTotal)
+                i = i + 1
+        End Select
+    Next
+End With
+
+GetDataFromSheet = arrTemp
+
+End Function
+
+Function PassToArray(ByVal Rw As Long, ws As Worksheet, ByVal FundName As String, ByVal LPName As String, ByVal PartnerCurrency As String, Optional ByVal bTotal As Boolean, Optional ByVal CntTotal As Long) As Variant
+
+Dim arrTemp(21) As Variant
+With ws
+   
+        arrTemp(0) = FundName
+        arrTemp(1) = LPName
+        arrTemp(2) = PartnerCurrency
+        arrTemp(3) = .Range("B" & Rw).Value
+        If bTotal = True Then
+            If CntTotal = 1 Then
+                arrTemp(4) = "Subtotal"
+            Else
+                arrTemp(4) = "Total"
+            End If
+        Else
+            arrTemp(4) = .Range("D" & Rw).Value
+        End If
+        arrTemp(5) = .Range("F" & Rw).Value
+        arrTemp(6) = .Range("H" & Rw).Value
+        arrTemp(7) = .Range("J" & Rw).Value
+        arrTemp(8) = .Range("L" & Rw).Value
+        arrTemp(9) = .Range("N" & Rw).Value
+        arrTemp(10) = .Range("P" & Rw).Value
+        arrTemp(11) = .Range("R" & Rw).Value
+        arrTemp(12) = .Range("T" & Rw).Value
+        arrTemp(13) = .Range("V" & Rw).Value
+        arrTemp(14) = .Range("X" & Rw).Value
+        arrTemp(15) = .Range("Z" & Rw).Value
+        arrTemp(16) = ""
+        arrTemp(17) = ""
+        arrTemp(18) = ""
+        arrTemp(19) = ""
+        arrTemp(20) = ""
+        arrTemp(21) = ""
+      
+
+End With
+
+PassToArray = arrTemp
+
+End Function
+
+Function FindRowforText(ByVal str As String, ws As Worksheet) As Long
+
+On Error Resume Next
+TextRow = ws.Cells.Find(What:=str, LookIn:=xlValues, Lookat:=xlWhole).Row
+On Error GoTo 0
+
+If Not TextRow = vbNullString Then FindRowforText = TextRow
+End Function
