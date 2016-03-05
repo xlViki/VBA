@@ -1,0 +1,189 @@
+Option Compare Text
+Sub CAS_Common_All()
+
+Application.ScreenUpdating = False
+Application.AskToUpdateLinks = False
+Application.DisplayAlerts = False
+
+Dim wbCAS As Workbook, wsOutput As Worksheet
+
+'// Get the row numbers for each section
+FundName = ThisWorkbook.Sheets("Main").Range("B1").Value
+
+SourceFileName = Application.GetOpenFilename
+If SourceFileName = "False" Then Exit Sub
+
+'Set the header row in the Output Sheet
+Set wsOutput = Workbooks.Add.Sheets(1)
+wsOutput.Range("A1:W1").Value = Array("Fund", "LP", "Partner Currency", "Funding Date", "Investment", _
+                                "Initial Equity (Fund)", "Return of Capital (Fund)", "Current Equity (Fund)", _
+                                "Unrealized Appreciation (Fund)", "Unrealized Value (Fund)", _
+                                "Investment Percentage (LP)", "Initial Equity (LP)", "Return of Capital (LP)", "Current Equity (LP)", _
+                                "Unrealized Appreciation (LP)", "Unrealized Value (LP)", _
+                                "Capital Commitment", "Capital Contributed", "Add back: ROC", "Less: ROC Not Subject to Recall", _
+                                "Less: Adj. to Capital Commitment", "Less: Partnership Expenses", "UCC")
+
+Set wbCAS = Workbooks.Open(SourceFileName)
+For ShtCnt = 2 To wbCAS.Sheets.Count
+    arrData = GetDataFromSheet(wbCAS.Sheets(ShtCnt), FundName)
+    FreeRow = wsOutput.Range("A" & Rows.Count).End(xlUp).Row + 1
+    For j = LBound(arrData) To UBound(arrData)
+        wsOutput.Range("A" & FreeRow).Resize(1, 21) = arrData(j)
+        FreeRow = FreeRow + 1
+    Next j
+Next ShtCnt
+
+wbCAS.Close False
+
+'Format the output sheet
+wsOutput.Range("F2:W" & FreeRow).NumberFormat = "##,###.00"
+wsOutput.Range("K2:K" & FreeRow).NumberFormat = "0.0%"
+
+Application.ScreenUpdating = True
+Application.AskToUpdateLinks = True
+Application.DisplayAlerts = True
+
+End Sub
+
+Private Function GetDataFromSheet(ws As Worksheet, ByVal FundName As String) As Variant
+ 
+Dim LPName As String
+Dim arrTemp() As Variant
+
+'// Load all the data in an array
+With ws
+    LPName = .Range("A2").Value
+    RowCommitment = GetRow("Capital Commitment", 1, ws, xlWhole)
+    RowHeader = GetRow("Funding Date", 1, ws, xlWhole)
+    RowGrandtotal = GetRow("Total", 1, ws, xlPart)
+    On Error Resume Next
+        Set Curr = ws.Cells.Find(what:="*Denominated*", LookIn:=xlValues, Lookat:=xlWhole)
+    On Error GoTo 0
+    
+    Select Case FundName
+    Case "EUR III", "EUR IV", "Intl II"
+        If Not Curr Is Nothing Then
+            PartnerCurrency = UCase(Left(Curr.Value, 3))
+        Else
+            PartnerCurrency = "EUR"
+        End If
+    Case Else
+        PartnerCurrency = "USD"
+    End Select
+  
+    'Get the Partner commitment section in the array
+    Rw = RowCommitment
+    If .Range("F" & Rw).Value <> vbNullString Then
+        ReDim Preserve arrTemp(i)
+        arrTemp(i) = Array(FundName, LPName, PartnerCurrency, "", "Partner Commitment", "", "", "", "", "", "", "", "", "", "", "", .Range("F" & Rw).Value, .Range("F" & Rw + 1).Value, _
+                        .Range("F" & Rw + 2).Value, .Range("F" & Rw + 3).Value, .Range("F" & Rw + 4).Value, .Range("F" & Rw + 5).Value, .Range("F" & Rw + 6).Value)
+        i = i + 1
+    End If
+    
+   'Get the Partner section in the array
+   CntTotal = 0
+   For Rw = RowHeader + 1 To RowGrandtotal
+        Select Case .Range("D" & Rw).Value
+            Case vbNullString
+                'Do nothing
+            Case Else
+                If .Range("D" & Rw).Value Like "*Total*" Then
+                    bTotal = True
+                    CntTotal = CntTotal + 1
+                Else
+                    bTotal = False
+                End If
+                ReDim Preserve arrTemp(i)
+                arrTemp(i) = PassToArray(Rw, ws, FundName, LPName, PartnerCurrency, bTotal, CntTotal)
+                i = i + 1
+        End Select
+    Next
+End With
+
+GetDataFromSheet = arrTemp
+
+End Function
+
+Private Function PassToArray(ByVal Rw As Long, ws As Worksheet, ByVal FundName As String, ByVal LPName As String, ByVal PartnerCurrency As String, Optional ByVal bTotal As Boolean, Optional ByVal CntTotal As Long) As Variant
+
+Dim arrTemp(23) As Variant
+With ws
+        arrTemp(0) = FundName
+        arrTemp(1) = LPName
+        arrTemp(2) = PartnerCurrency
+        arrTemp(3) = .Cells(Rw, GetColumn("Funding Date", 1, ws)).Value
+        If bTotal = True Then
+            If CntTotal = 1 Then
+                arrTemp(4) = "Subtotal"
+            Else
+                arrTemp(4) = "Total"
+            End If
+        Else
+            arrTemp(4) = .Cells(Rw, GetColumn("Investment", 1, ws)).Value
+        End If
+        arrTemp(5) = .Cells(Rw, GetColumn("Initial Equity", 1, ws)).Value
+        arrTemp(6) = .Cells(Rw, GetColumn("Return of Capital", 1, ws)).Value
+        arrTemp(7) = .Cells(Rw, GetColumn("Realized Loss", 1, ws)).Value
+        arrTemp(8) = .Cells(Rw, GetColumn("Current Equity", 1, ws)).Value
+        arrTemp(9) = .Cells(Rw, GetColumn("Unrealized Appreciation", 1, ws)).Value
+        arrTemp(10) = .Cells(Rw, GetColumn("Unrealized Value", 1, ws)).Value
+        arrTemp(11) = .Cells(Rw, GetColumn("L.P.'s Investment Percentage ", 1, ws)).Value
+        arrTemp(12) = .Cells(Rw, GetColumn("Initial Equity", 2, ws)).Value
+        arrTemp(13) = .Cells(Rw, GetColumn("Return of Capital", 2, ws)).Value
+        arrTemp(14) = .Cells(Rw, GetColumn("Realized Loss", 2, ws)).Value
+        arrTemp(15) = .Cells(Rw, GetColumn("Current Equity", 2, ws)).Value
+        arrTemp(16) = .Cells(Rw, GetColumn("Unrealized Appreciation", 2, ws)).Value
+        arrTemp(17) = .Cells(Rw, GetColumn("Unrealized Value", 2, ws)).Value
+        arrTemp(18) = ""
+        arrTemp(19) = ""
+        arrTemp(20) = ""
+        arrTemp(21) = ""
+        arrTemp(22) = ""
+        arrTemp(23) = ""
+End With
+
+PassToArray = arrTemp
+
+End Function
+
+Private Function GetRow(ByVal str As String, ByVal order As Integer, ws As Worksheet, PartWhole As String) As Long
+
+Set FoundCell = ws.Cells(1, 1)
+For x = 1 To order
+    Set FoundCell = ws.Cells(1, 1)
+    On Error Resume Next
+    Set TextCell = ws.Cells.Find(what:=str, After:=FoundCell, LookIn:=xlValues, Lookat:=PartWhole, SearchOrder:=xlByRows)
+    TextRow = TextCell.Row
+    On Error GoTo 0
+    Set FoundCell = TextCell
+Next
+If Not TextRow = vbNullString Then GetRow = TextRow
+End Function
+
+Private Function GetColumn(ByVal str As String, ByVal order As Integer, ws As Worksheet) As Long
+
+Set FoundCell = ws.Cells(1, 1)
+For x = 1 To order
+    On Error Resume Next
+    Set TextCell = ws.Cells.Find(what:=str, After:=FoundCell, LookIn:=xlValues, Lookat:=xlWhole, SearchOrder:=xlByColumns)
+    TextCol = TextCell.Column
+    On Error GoTo 0
+    Set FoundCell = TextCell
+Next
+If Not TextCol = vbNullString Then GetColumn = TextCol
+End Function
+
+Sub testGetColumn()
+
+Dim ws As Worksheet
+Set ws = Workbooks("CAS Test2.xlsx").Sheets("Sheet1")
+
+Debug.Print GetColumn("Initial Equity", 2, ws)
+End Sub
+
+
+
+
+
+
+
