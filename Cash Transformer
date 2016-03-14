@@ -1,0 +1,166 @@
+Option Compare Text
+
+Public RowContri As Integer, RowPartExp As Integer, RowROC As Integer, RowIncome As Integer, RowGain As Integer, RowLast As Integer
+
+Sub InitGlobalCols(ByRef ws As Worksheet)
+    RowContri = GetRow("Capital Contributions", 1, ws, xlWhole)
+    RowPartExp = GetRow("Partnership Expenses", 1, ws, xlWhole)
+    RowROC = GetRow("Return of Capital", 1, ws, xlWhole)
+    RowIncome = GetRow("Current Income", 2, ws, xlWhole)
+    RowGain = GetRow("Gain on Disposition", 2, ws, xlWhole)
+    RowLast = ws.Range("A" & Rows.Count).End(xlUp).Row
+End Sub
+
+Sub CashAct_Transformer()
+
+Application.ScreenUpdating = False
+Application.AskToUpdateLinks = False
+Application.DisplayAlerts = False
+
+Dim wbCash As Workbook, wsOutput As Worksheet
+t = Timer
+'// Get the row numbers for each section
+FundName = ThisWorkbook.Sheets("Main").Range("A1").Value
+
+SourceFileName = Application.GetOpenFilename
+If SourceFileName = "False" Then Exit Sub
+
+'Set the header row in the Output Sheet
+Set wsOutput = Workbooks.Add.Sheets(1)
+wsOutput.Range("A1:G1").Value = Array("Fund Name", "Partner Name", "Transaction Type", "Security", "Date", _
+                                "QTD", "YTD")
+
+Set wbCash = Workbooks.Open(SourceFileName)
+
+'Find out the columns numbers for all fields
+Call InitGlobalCols(wbCash.Sheets(2))
+
+'Loop in all sheets of the CAS workbook and get data
+For ShtCnt = 2 To wbCash.Sheets.Count
+    arrData = GetDataFromSheet(wbCash.Sheets(ShtCnt), FundName)
+    FreeRow = wsOutput.Range("A" & Rows.Count).End(xlUp).Row + 1
+    For j = LBound(arrData) To UBound(arrData)
+        wsOutput.Range("A" & FreeRow).Resize(1, 25) = arrData(j)
+        FreeRow = FreeRow + 1
+    Next j
+Next ShtCnt
+
+wbCash.Close False
+
+'Format the output sheet
+wsOutput.Range("F2:Y" & FreeRow).NumberFormat = "##,###.00"
+wsOutput.Range("L2:L" & FreeRow).NumberFormat = "0.0%"
+t = MsgBox((Timer - t) / 60) & " seconds"
+Application.ScreenUpdating = True
+Application.AskToUpdateLinks = True
+Application.DisplayAlerts = True
+
+End Sub
+
+Private Function GetDataFromSheet(ws As Worksheet, ByVal FundName As String) As Variant
+ 
+Dim LPName As String
+Dim arrTemp() As Variant
+
+'// Load all the data in an array
+With ws
+    If Not IsError(.Range("A1").Value) Then
+        LPName = .Range("A1").Value
+    Else
+        LPName = "Error"
+    End If
+
+    'Debug.Print RowCommitment & vbTab & RowHeader & vbTab & RowGrandtotal
+    
+   'Get data in the array
+    For Rw = RowContri + 1 To RowPartExp
+        If IsNumeric(.Cells(Rw, 4).Value) And Not IsEmpty(.Cells(Rw, 4)) Then
+                ReDim Preserve arrTemp(i)
+                arrTemp(i) = PassToArray(Rw, ws, FundName, LPName, "Capital Contributions")
+                i = i + 1
+        End If
+    Next
+    
+    For Rw = RowPartExp + 1 To RowROC
+        If IsNumeric(.Cells(Rw, 4).Value) And Not IsEmpty(.Cells(Rw, 4)) Then
+                ReDim Preserve arrTemp(i)
+                arrTemp(i) = PassToArray(Rw, ws, FundName, LPName, "Partnership Expenses")
+                i = i + 1
+        End If
+    Next
+    
+    For Rw = RowROC + 1 To RowIncome
+        If IsNumeric(.Cells(Rw, 4).Value) And Not IsEmpty(.Cells(Rw, 4)) Then
+                ReDim Preserve arrTemp(i)
+                arrTemp(i) = PassToArray(Rw, ws, FundName, LPName, "Return of Capital")
+                i = i + 1
+        End If
+    Next
+    
+    For Rw = RowIncome + 1 To RowGain
+        If IsNumeric(.Cells(Rw, 4).Value) And Not IsEmpty(.Cells(Rw, 4)) Then
+                ReDim Preserve arrTemp(i)
+                arrTemp(i) = PassToArray(Rw, ws, FundName, LPName, "Current Income")
+                i = i + 1
+        End If
+    Next
+    
+    For Rw = RowGain + 1 To RowLast
+        If IsNumeric(.Cells(Rw, 4).Value) And Not IsEmpty(.Cells(Rw, 4)) Then
+                ReDim Preserve arrTemp(i)
+                arrTemp(i) = PassToArray(Rw, ws, FundName, LPName, "Gain on Disposition")
+                i = i + 1
+        End If
+    Next
+    
+End With
+
+GetDataFromSheet = arrTemp
+
+End Function
+
+Private Function PassToArray(ByVal Rw As Long, ws As Worksheet, ByVal FundName As String, ByVal LPName As String, ByVal TransType As String) As Variant
+
+Dim arrTemp(25) As Variant
+With ws
+    arrTemp(0) = FundName
+    arrTemp(1) = LPName
+    arrTemp(2) = TransType
+    arrTemp(3) = .Cells(Rw, 1).Value
+    arrTemp(4) = .Cells(Rw, 2).Value
+    arrTemp(5) = .Cells(Rw, 3).Value
+    arrTemp(6) = .Cells(Rw, 4).Value
+
+End With
+
+PassToArray = arrTemp
+
+End Function
+
+Private Function GetRow(ByVal str As String, ByVal order As Integer, ws As Worksheet, PartWhole As String) As Long
+
+Set foundcell = ws.Cells(1, 1)
+For x = 1 To order
+    On Error Resume Next
+    Set TextCell = ws.Cells.Find(what:=str, After:=foundcell, LookIn:=xlValues, Lookat:=PartWhole, SearchOrder:=xlByRows)
+    TextRow = TextCell.Row
+    On Error GoTo 0
+    Set foundcell = TextCell
+Next
+If Not TextRow = vbNullString Then GetRow = TextRow
+End Function
+
+Private Function GetColumn(ByVal str As String, ByVal order As Integer, ws As Worksheet, PartWhole As String) As Long
+
+Set foundcell = ws.Cells(1, 1)
+For x = 1 To order
+    On Error Resume Next
+    Set TextCell = ws.Cells.Find(what:=str, After:=foundcell, LookIn:=xlValues, Lookat:=PartWhole, SearchOrder:=xlByColumns)
+    TextCol = TextCell.Column
+    On Error GoTo 0
+    Set foundcell = TextCell
+Next
+If Not TextCol = vbNullString Then GetColumn = TextCol
+End Function
+
+
