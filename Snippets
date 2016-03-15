@@ -277,3 +277,17 @@ End Sub
 
     SaveFileName = "C:\Users\Vikram\Desktop\Cash Activity Test " & Format(Date, "m.d.yy") & ".xlsx"
     ActiveWorkbook.SaveCopyAs Filename:=SaveFileName
+    
+    OR
+    
+    Dim BaseDirectory As String
+    Dim OpenFileName As String
+    Dim OldFileName As String
+    Dim NewFileName As String
+    
+    BaseDirectory = "E:\New folder\"
+    OpenFileName = "Book1.xlsx" 'OR ActiveWorkbook.Name
+    OldFileName = Mid(OpenFileName, 1, Len(OpenFileName) - 5)
+     
+    NewFileName = BaseDirectory & OldFileName & " - " & (Year(Now) - 1) & ".xlsx"
+    FileCopy "E:\New folder\" & OpenFileName, NewFileName
