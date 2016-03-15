@@ -271,4 +271,9 @@ End Sub
         r = rngFilter.Rows.Count 
         f = rngFilter.SpecialCells(xlCellTypeVisible).Count 
         If r > f Then MsgBox "Data is Filtered" 
-    End Sub 
+    End Sub
+    
+15. '//SaveCopyAs - to save an open workbook as another file.
+
+    SaveFileName = "C:\Users\Vikram\Desktop\Cash Activity Test " & Format(Date, "m.d.yy") & ".xlsx"
+    ActiveWorkbook.SaveCopyAs Filename:=SaveFileName
