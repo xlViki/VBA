@@ -1,8 +1,10 @@
 Option Compare Text
 
-Public RowContri As Integer, RowPartExp As Integer, RowROC As Integer, RowIncome As Integer, RowGain As Integer, RowLast As Integer
+Public RowCapRoll As Integer, RowRealUnreal As Integer, RowContri As Integer, RowPartExp As Integer, RowROC As Integer, RowIncome As Integer, RowGain As Integer, RowLast As Integer
 
-Sub InitGlobalCols(ByRef ws As Worksheet)
+Sub InitGlobalRows(ByRef ws As Worksheet)
+    RowCapRoll = GetRow("Capital Account Rollforward", 1, ws, xlWhole)
+    RowRealUnreal = GetRow("Total Realized/Unrealized Value", 1, ws, xlWhole)
     RowContri = GetRow("Capital Contributions", 1, ws, xlWhole)
     RowPartExp = GetRow("Partnership Expenses", 1, ws, xlWhole)
     RowROC = GetRow("Return of Capital", 1, ws, xlWhole)
@@ -33,7 +35,7 @@ wsOutput.Range("A1:G1").Value = Array("Fund Name", "Partner Name", "Transaction 
 Set wbCash = Workbooks.Open(SourceFileName)
 
 'Find out the columns numbers for all fields
-Call InitGlobalCols(wbCash.Sheets(2))
+Call InitGlobalRows(wbCash.Sheets(2))
 
 'Loop in all sheets of the CAS workbook and get data
 For ShtCnt = 2 To wbCash.Sheets.Count
@@ -73,6 +75,14 @@ With ws
     'Debug.Print RowCommitment & vbTab & RowHeader & vbTab & RowGrandtotal
     
    'Get data in the array
+       For Rw = RowCapRoll + 1 To RowRealUnreal
+        If IsNumeric(.Cells(Rw, 2).Value) And Not IsEmpty(.Cells(Rw, 2)) Then
+                ReDim Preserve arrTemp(i)
+                arrTemp(i) = PassToArray(Rw, ws, FundName, LPName, "Capital Account Rollforward", True)
+                i = i + 1
+        End If
+    Next
+      
     For Rw = RowContri + 1 To RowPartExp
         If IsNumeric(.Cells(Rw, 4).Value) And Not IsEmpty(.Cells(Rw, 4)) Then
                 ReDim Preserve arrTemp(i)
@@ -119,7 +129,7 @@ GetDataFromSheet = arrTemp
 
 End Function
 
-Private Function PassToArray(ByVal Rw As Long, ws As Worksheet, ByVal FundName As String, ByVal LPName As String, ByVal TransType As String) As Variant
+Private Function PassToArray(ByVal Rw As Long, ws As Worksheet, ByVal FundName As String, ByVal LPName As String, ByVal TransType As String, Optional ByVal IsCapRoll As Boolean) As Variant
 
 Dim arrTemp(25) As Variant
 With ws
@@ -127,10 +137,15 @@ With ws
     arrTemp(1) = LPName
     arrTemp(2) = TransType
     arrTemp(3) = .Cells(Rw, 1).Value
-    arrTemp(4) = .Cells(Rw, 2).Value
-    arrTemp(5) = .Cells(Rw, 3).Value
-    arrTemp(6) = .Cells(Rw, 4).Value
-
+    If IsCapRoll = False Then
+        arrTemp(4) = .Cells(Rw, 2).Value
+        arrTemp(5) = .Cells(Rw, 3).Value
+        arrTemp(6) = .Cells(Rw, 4).Value
+    Else
+        arrTemp(4) = vbNullString
+        arrTemp(5) = vbNullString
+        arrTemp(6) = .Cells(Rw, 2).Value
+    End If
 End With
 
 PassToArray = arrTemp
