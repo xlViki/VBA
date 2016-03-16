@@ -312,3 +312,32 @@ End Sub
     Worksheets(mySheetList).Copy
     ActiveWorkbook.SaveAs Filename:=NewFileName 'default ext
     End Sub
+
+Sub saveAsXlsx()
+    Dim mySheetList() As String
+    ReDim mySheetList(0 To (ThisWorkbook.Sheets.Count) - 2)
+    Dim a As Integer
+    a = 0
+    For Each ws In ActiveWorkbook.Worksheets
+        If Not ws.Name = "main" Then
+            mySheetList(a) = ws.Name
+            a = a + 1
+        End If
+    Next ws
+
+    NewFileName = "C:\Users\Vikram\Desktop\Cash Activity Test " & Format(Date, "m.d.yy") & ".xlsx"
+   
+    i = 1
+    If Dir(NewFileName) <> "" Then
+        Do While x = False
+            SaveFileName = Left(NewFileName, Len(NewFileName) - 5) & " (" & i & ").xlsx"
+            If Dir(SaveFileName) = "" Then
+                x = True
+            End If
+            i = i + 1
+        Loop
+    End If
+    Debug.Print SaveFileName
+    Worksheets(mySheetList).Copy
+    ActiveWorkbook.SaveAs Filename:=NewFileName, FileFormat:=xlWorkbookDefault 'default ext
+End Sub
