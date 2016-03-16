@@ -273,13 +273,14 @@ End Sub
         If r > f Then MsgBox "Data is Filtered" 
     End Sub
     
-15. '//SaveCopyAs - to save an open workbook as another file.
+15. '//SaveCopyAs - to save an open workbook as another file. Can't change format of the file
 
-    SaveFileName = "C:\Users\Vikram\Desktop\Cash Activity Test " & Format(Date, "m.d.yy") & ".xlsx"
+    SaveFileName = "C:\Users\Vikram\Desktop\Cash Activity Test " & Format(Date, "m.d.yy") & ".xlsx" 
     ActiveWorkbook.SaveCopyAs Filename:=SaveFileName
     
     OR
     
+    'Can't use this on an open file
     Dim BaseDirectory As String
     Dim OpenFileName As String
     Dim OldFileName As String
@@ -291,3 +292,23 @@ End Sub
      
     NewFileName = BaseDirectory & OldFileName & " - " & (Year(Now) - 1) & ".xlsx"
     FileCopy "E:\New folder\" & OpenFileName, NewFileName
+
+    OR
+    
+    'Can change the format
+    Sub saveAsXlsx()
+    Dim mySheetList() As String
+    ReDim mySheetList(0 To (ThisWorkbook.Sheets.Count) - 2)
+    Dim a As Integer
+    a = 0
+    For Each ws In ActiveWorkbook.Worksheets
+        If Not ws.Name = "main" Then
+            mySheetList(a) = ws.Name
+            a = a + 1
+        End If
+    Next ws
+
+    NewFileName = "C:\Users\Vikram\Desktop\Cash Activity Test " & Format(Date, "m.d.yy") & ".xlsx"
+    Worksheets(mySheetList).Copy
+    ActiveWorkbook.SaveAs Filename:=NewFileName 'default ext
+    End Sub
