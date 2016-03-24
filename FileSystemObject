@@ -1,0 +1,13 @@
+1 '// Compare File info
+    Sub CompareFileInfo(MasterFilePath As String, CopyFilePath As String)
+       Dim fso As Object, fMaster As Object, fCopy As Object
+       
+       Set fso = CreateObject("Scripting.FileSystemObject")
+       Set fMaster = fso.GetFile(MasterFilePath)
+       Set fCopy = fso.GetFile(CopyFilePath)
+       
+       If fMaster.DateLastModified > fCopy.DateCreated Then
+            MsgBox ("This version is out of date." & Chr(10) & "Please use the latest version to make changes")
+       
+       End If
+    End Sub
