@@ -324,3 +324,28 @@
         Worksheets(mySheetList).Copy
         ActiveWorkbook.SaveAs Filename:=NewFileName, FileFormat:=xlWorkbookDefault 'default ext
     End Sub
+
+16. '// Split a Workbook (create new workbook for each sheet)
+
+    Sub SplitWorkbook()
+    Dim FileExtStr As String
+    Dim FileFormatNum As Long
+    Dim xWs As Worksheet
+    Dim xWb As Workbook
+    Dim FolderName As String
+    Application.ScreenUpdating = False
+    Set xWb = Application.ThisWorkbook
+    DateString = Format(Now, "yyyy-mm-dd hh-mm-ss")
+    FolderName = xWb.Path & "\" & xWb.Name & " " & DateString
+    MkDir FolderName
+    For Each xWs In xWb.Worksheets
+        xWs.Copy
+    
+        xFile = FolderName & "\" & Application.ActiveWorkbook.Sheets(1).Name & FileExtStr
+        Application.ActiveWorkbook.SaveAs xFile, FileFormat:=FileFormatNum
+        Application.ActiveWorkbook.Close False
+    Next
+    MsgBox "You can find the files in " & FolderName
+    Application.ScreenUpdating = True
+    End Sub
+    
