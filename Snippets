@@ -226,24 +226,7 @@
     
     End Sub   
 
-12. '//Save New version of Activeworkbook at the same location
-  Sub SaveNewVersion()
-    Dim fileName As String, index As Long, ext As String
-    arr = Split(ActiveWorkbook.Name, ".")
-    ext = arr(UBound(arr))
-    If InStr(ActiveWorkbook.Name, "_v") = 0 Then
-         
-        fileName = ActiveWorkbook.Path & "\" & Left(ActiveWorkbook.Name, InStr(ActiveWorkbook.Name, ".") - 1) & "_v1." & ext
-        ActiveWorkbook.SaveAs (fileName)
-    Else
-        index = CInt(Split(Right(ActiveWorkbook.Name, Len(ActiveWorkbook.Name) - InStr(ActiveWorkbook.Name, "_v") - 1), ".")(0))
-        index = index + 1
-        fileName = ActiveWorkbook.Path & "\" & Left(ActiveWorkbook.Name, InStr(ActiveWorkbook.Name, "_v") - 1) & "_v" & index & "." & ext
-    End If
-    ActiveWorkbook.SaveAs (fileName)
-End Sub
-
-13. '//Change the ReadWrite Access of a User for a Workbook based on a password
+12. '//Change the ReadWrite Access of a User for a Workbook based on a password
 
     Private Sub Workbook_Open()
       ThisWorkbook.ChangeFileAccess xlReadOnly
@@ -263,7 +246,7 @@ End Sub
       End If
     End Sub
 
-14. '//Test if Data is filtered after Autofilter
+13. '//Test if Data is filtered after Autofilter
     Sub TestFiltered() 
         Dim rngFilter As Range 
         Dim r As Long, f As Long 
@@ -271,6 +254,23 @@ End Sub
         r = rngFilter.Rows.Count 
         f = rngFilter.SpecialCells(xlCellTypeVisible).Count 
         If r > f Then MsgBox "Data is Filtered" 
+    End Sub
+
+14. '//Save New version of Activeworkbook at the same location
+    Sub SaveNewVersion()
+      Dim fileName As String, index As Long, ext As String
+      arr = Split(ActiveWorkbook.Name, ".")
+      ext = arr(UBound(arr))
+      If InStr(ActiveWorkbook.Name, "_v") = 0 Then
+           
+          fileName = ActiveWorkbook.Path & "\" & Left(ActiveWorkbook.Name, InStr(ActiveWorkbook.Name, ".") - 1) & "_v1." & ext
+          ActiveWorkbook.SaveAs (fileName)
+      Else
+          index = CInt(Split(Right(ActiveWorkbook.Name, Len(ActiveWorkbook.Name) - InStr(ActiveWorkbook.Name, "_v") - 1), ".")(0))
+          index = index + 1
+          fileName = ActiveWorkbook.Path & "\" & Left(ActiveWorkbook.Name, InStr(ActiveWorkbook.Name, "_v") - 1) & "_v" & index & "." & ext
+      End If
+      ActiveWorkbook.SaveAs (fileName)
     End Sub
     
 15. '//SaveCopyAs - to save an open workbook as another file. Can't change format of the file
