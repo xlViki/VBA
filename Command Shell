@@ -1,0 +1,5 @@
+'// Add Symbolic link to a location (e.g. favorites)
+    mklink /D %USERPROFILE%\Links\Movies "E:\Movies"
+      /D      Creates a directory symbolic link.  Default is a file symbolic link.
+      /H      Creates a hard link instead of a symbolic link.
+      /J   Creates a Directory Junction.
