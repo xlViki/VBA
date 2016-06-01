@@ -348,4 +348,15 @@
     MsgBox "You can find the files in " & FolderName
     Application.ScreenUpdating = True
     End Sub
-    
+
+17. '//Add IFERROR to all formulas in selected cells    
+
+    Sub Add_IFERROR_Activesheet()
+    Dim myCell As Range
+    Cells.SpecialCells(xlCellTypeFormulas, 23).Select
+    For Each myCell In Selection.Cells
+        If myCell.HasFormula And Not myCell.HasArray Then
+            myCell.Formula = "=IFERROR(" & Right(myCell.Formula, Len(myCell.Formula) - 1) & ",0)"
+        End If
+    Next
+    End Sub
