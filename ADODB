@@ -10,7 +10,7 @@ Function GetTheValue(wbPath, wbName, wsName, cellRef)
 
     cn.Open "Provider=Microsoft.ACE.OLEDB.12.0;" & _
           "Data Source=" & wbPath & wbName & ";" & _
-          "Extended Properties=""Excel 8.0;"""
+          "Extended Properties=""Excel 8.0;"""  
 
     SQLQuery = "SELECT * FROM [" & wsName & "$" & cellRef & "]"
     Debug.Print SQLQuery
@@ -38,9 +38,9 @@ End Function
     
         cn.Open "Provider=Microsoft.ACE.OLEDB.12.0;" & _
               "Data Source=" & wbPath & ";" & _
-              "Extended Properties=""Excel 8.0;"""
+              "Extended Properties=""Excel 8.0;HDR = No;""" 'HDR = No leads the connection to treat first row as data too
         
-        cellRef = CreateRef(cellRef) '& ":" & ExtractStr(cellRef) & ExtractNum(cellRef) + 1
+        cellRef = cellRef & ":" & cellRef 'CreateRef(cellRef) '& ":" & ExtractStr(cellRef) & ExtractNum(cellRef) + 1
         
         SQLQuery = "SELECT * FROM [" & wsName & "$" & cellRef & "]"
         Debug.Print SQLQuery
@@ -55,7 +55,7 @@ End Function
         Set cn = Nothing
 
     End Function
-
+    
     Private Function CreateRef(strIn As String) As String
         Dim objRegex
         Set objRegex = CreateObject("vbscript.regexp")
@@ -68,7 +68,6 @@ End Function
         CreateRef = strOut
         End With
     End Function
-
 
 3. '//Pull value from range name
 
