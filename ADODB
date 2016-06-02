@@ -1,4 +1,4 @@
-1. '//Pull value from a single cell
+1. '//Pull value from a single cell like --- =GetTheValue("D:\","test.xls","Sheet1","B4:B5")
 Function GetTheValue(wbPath, wbName, wsName, cellRef)
     Dim cn As ADODB.Connection
     Dim rs As ADODB.Recordset
@@ -25,7 +25,40 @@ Function GetTheValue(wbPath, wbName, wsName, cellRef)
 End Function
 
 
-2. '//Pull value from range name
+2. '//Pull value from a single cell like ----- =getValue("D:\test.xls","Sheet1","B4")
+
+    Function getValue(ByVal wbPath As String, ByVal wsName As String, ByVal cellRef As String)
+
+        Dim cn As ADODB.Connection
+        Dim rs As ADODB.Recordset
+        Dim SQLQuery As String
+        
+        Set cn = New ADODB.Connection
+        Set rs = New ADODB.Recordset
+    
+        cn.Open "Provider=Microsoft.ACE.OLEDB.12.0;" & _
+              "Data Source=" & wbPath & ";" & _
+              "Extended Properties=""Excel 8.0;"""
+        
+        cellRef = CreateRef(cellRef) '& ":" & ExtractStr(cellRef) & ExtractNum(cellRef) + 1
+        
+        SQLQuery = "SELECT * FROM [" & wsName & "$" & cellRef & "]"
+        Debug.Print SQLQuery
+        
+        Set rs = cn.Execute(SQLQuery, , adCmdText)
+       
+        getValue = rs(0).Value
+     
+        rs.Close
+        cn.Close
+        Set rs = Nothing
+        Set cn = Nothing
+
+    End Function
+
+
+
+3. '//Pull value from range name
 
 Public Function ImportDataUDF(strpath As String, RangeName As Variant) As Variant
 
@@ -70,7 +103,7 @@ ErrHandler:
     Exit Function
 End Function
 
-3. '//Pull value from range name (Sub)
+4. '//Pull value from range name (Sub)
 Sub ImportData()
     
     Dim strpath As String, lrow As Long, wbMain As Workbook, cell As Range, Rng As Range, i As Long
