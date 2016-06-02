@@ -56,6 +56,18 @@ End Function
 
     End Function
 
+    Private Function CreateRef(strIn As String) As String
+        Dim objRegex
+        Set objRegex = CreateObject("vbscript.regexp")
+        With objRegex
+         .Global = True
+         .Pattern = "([^\d]+)([0-9]+)"
+        
+        strOut = .Replace(strIn, "$1") & .Replace(strIn, "$2") - 1 & ":" & strIn
+        
+        CreateRef = strOut
+        End With
+    End Function
 
 
 3. '//Pull value from range name
