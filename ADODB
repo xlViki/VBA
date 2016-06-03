@@ -69,7 +69,36 @@ End Function
         End With
     End Function
 
-3. '//Pull value from range name
+3. '//Pull value from a single cell using ExecuteExcel4Macro
+
+    Function GetData(wbPath As String, wbName As String, wsName As String, cellRef As String)
+
+        Dim Ret As String
+        Static XL As Application ' To just have one additional instance
+        
+    '    wbPath = "\\enterprise\ABC\"
+    '    wbName = "XYZ.xlsx"
+    '    wsName = "Sheet1"
+    '    cellRef = "A2"
+        
+        'Create a second instance of Excel in memory (ExecuteExcel4Macro doesn't work in cell formulas in same instance)
+        If XL Is Nothing Then Set XL = CreateObject("Excel.Application")
+        'Debug.Print "Created new instance"
+        Ret = "'" & wbPath & "[" & wbName & "]" & _
+              wsName & "'!" & Range(cellRef).Address(True, True, xlR1C1)
+        'Debug.Print Ret
+        x = XL.ExecuteExcel4Macro(Ret)
+        'End If
+        Debug.Print x
+        GetData = x
+    End Function
+
+
+
+
+
+
+4. '//Pull value from range name
 
 Public Function ImportDataUDF(strpath As String, RangeName As Variant) As Variant
 
@@ -114,7 +143,7 @@ ErrHandler:
     Exit Function
 End Function
 
-4. '//Pull value from range name (Sub)
+5. '//Pull value from range name (Sub)
 Sub ImportData()
     
     Dim strpath As String, lrow As Long, wbMain As Workbook, cell As Range, Rng As Range, i As Long
