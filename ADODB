@@ -93,9 +93,13 @@ End Function
         GetData = x
     End Function
 
-
-
-
+    Function DDE(ByVal Reference As String) As Variant
+      Static XL As Application
+      On Error Resume Next
+      If XL Is Nothing Then Set XL = CreateObject("Excel.Application")
+      DDE = XL.ExecuteExcel4Macro(Application.ConvertFormula(Reference, xlA1, xlR1C1, True))
+      Debug.Print "worked"
+    End Function
 
 
 4. '//Pull value from range name
