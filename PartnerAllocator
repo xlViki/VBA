@@ -1,0 +1,34 @@
+Sub Allocator()
+
+Dim wsSource As Worksheet, wsAlloc As Worksheet, wsOutput As Worksheet
+Dim arrPartAlloc() As Variant
+
+Set wsSource = ThisWorkbook.Sheets(1)
+Set wsAlloc = ThisWorkbook.Sheets(2)
+Set wsOutput = ThisWorkbook.Sheets(3)
+
+lrowS = wsSource.Range("A" & Rows.Count).End(xlUp).Row
+lcolS = wsSource.Cells(1, Columns.Count).End(xlToLeft).Column
+
+For i = 2 To lrowS
+If wsSource.Cells(i, 1) <> "" Then
+
+    Deal = wsSource.Cells(i, 1).Value
+    lrowA = wsAlloc.Range("A" & Rows.Count).End(xlUp).Row
+    Set RngDeal = wsAlloc.Rows(1).Find(what:=Deal)
+    arrPartAlloc = wsAlloc.Range(wsAlloc.Cells(2, RngDeal.Column), wsAlloc.Cells(lrowA, RngDeal.Column))
+    
+    For j = 4 To lcolS
+        tAmount = wsSource.Cells(i, j)
+        arrAllocAmount = arrPartAlloc 'To avoid re-dimming
+        For k = LBound(arrPartAlloc) To UBound(arrPartAlloc)
+            arrAllocAmount(k, 1) = tAmount * arrPartAlloc(k, 1)
+            Debug.Print arrAllocAmount(k, 1)
+        Next k
+        
+    Next j
+    
+End If
+Next i
+
+End Sub
