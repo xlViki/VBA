@@ -33,3 +33,53 @@ End If
 ExtractRegEx = result
 
 End Function
+
+Function regExp(strInput As String, matchPattern As String, Optional ByVal outputPattern As String = "$0") As Variant
+    
+    Dim inputRegexObj As New VBScript_RegExp_55.regExp, outputRegexObj As New VBScript_RegExp_55.regExp, outReplaceRegexObj As New VBScript_RegExp_55.regExp
+    Dim inputMatches As Object, replaceMatches As Object, replaceMatch As Object
+    Dim replaceNumber As Integer
+
+    With inputRegexObj
+        .Global = True
+        .MultiLine = True
+        .IgnoreCase = False
+        .Pattern = matchPattern
+    End With
+    With outputRegexObj
+        .Global = True
+        .MultiLine = True
+        .IgnoreCase = False
+        .Pattern = "\$(\d+)"
+    End With
+    With outReplaceRegexObj
+        .Global = True
+        .MultiLine = True
+        .IgnoreCase = False
+    End With
+
+    Set inputMatches = inputRegexObj.Execute(strInput)
+    If inputMatches.Count = 0 Then
+        regEx = False
+    Else
+        Set replaceMatches = outputRegexObj.Execute(outputPattern)
+        For Each replaceMatch In replaceMatches
+            replaceNumber = replaceMatch.SubMatches(0)
+            outReplaceRegexObj.Pattern = "\$" & replaceNumber
+
+            If replaceNumber = 0 Then
+                outputPattern = outReplaceRegexObj.Replace(outputPattern, inputMatches(0).Value)
+            Else
+                If replaceNumber > inputMatches(0).SubMatches.Count Then
+                    'regex = "A to high $ tag found. Largest allowed is $" & inputMatches(0).SubMatches.Count & "."
+                    regEx = CVErr(xlErrValue)
+                    Exit Function
+                Else
+                    outputPattern = outReplaceRegexObj.Replace(outputPattern, inputMatches(0).SubMatches(replaceNumber - 1))
+                End If
+            End If
+        Next
+        regExp = outputPattern
+    End If
+End Function
+
