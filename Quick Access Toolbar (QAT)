@@ -1,0 +1,7 @@
+1. '//Get a sheet selection window
+
+  Sub SheetChooser()
+      Application.CommandBars("Workbook tabs").ShowPopup
+  End Sub
+  
+  
