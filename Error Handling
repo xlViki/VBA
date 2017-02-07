@@ -69,3 +69,54 @@ ErrorHandler:
              End If
              Resume Next
           End Sub
+
+3. '//Function to log process and memory usage at different stages
+    Option Explicit
+
+    Sub Heartbeat(LogText As String)
+    '-----------------------------------------------------------------------------
+    'Purpose    Enable logging where the program is
+    'Expects    LogText The freetext log that describes what is being logged.
+    '-----------------------------------------------------------------------------
+    'Usage      Heartbeat "this text will end up in the text-file"
+    '           Heartbeat GetProcessMemory("EXCEL.EXE")     'requires the GetProcessMemory function
+    '                                                        http://stackoverflow.com/questions/17202892/to-find-the-memory-usage-of-a-particular-process  
+    '-----------------------------------------------------------------------------
+    '-----------------------------------------------------------------------------
+    'Changelog
+    'HANY 20140416
+    '   Created
+    '-----------------------------------------------------------------------------
+
+    Dim fname As String
+    Dim myLogText As String
+    Dim myfilenumber As Integer
+
+
+    'If there are any ' or " in the log-text, take them away.
+myLogText = Replace(LogText, "'", "*")
+myLogText = Replace(myLogText, """", "*")
+
+'----------------------------------------------------
+'Log in the text-file
+'----------------------------------------------------
+fname = "Mylogfile.log.txt"
+myfilenumber = FreeFile
+Open fname For Append As #myfilenumber
+Print #myfilenumber, FormatLogTime(Now()) & "--" & LogText
+Close #myfilenumber
+
+End Sub
+
+Function FormatLogTime(iDate As Date) As String
+FormatLogTime = Right("0000" & Year(iDate), 4) _
+              & Right("00" & Month(iDate), 2) _
+              & Right("00" & Day(iDate), 2) _
+              & " " _
+              & Right("00" & Hour(iDate), 2) _
+              & "." _
+              & Right("00" & Minute(iDate), 2) _
+              & "." _
+              & Right("00" & Second(iDate), 2)
+
+End Function
