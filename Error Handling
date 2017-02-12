@@ -94,29 +94,72 @@ ErrorHandler:
 
 
     'If there are any ' or " in the log-text, take them away.
-myLogText = Replace(LogText, "'", "*")
-myLogText = Replace(myLogText, """", "*")
+    myLogText = Replace(LogText, "'", "*")
+    myLogText = Replace(myLogText, """", "*")
 
-'----------------------------------------------------
-'Log in the text-file
-'----------------------------------------------------
-fname = "Mylogfile.log.txt"
-myfilenumber = FreeFile
-Open fname For Append As #myfilenumber
-Print #myfilenumber, FormatLogTime(Now()) & "--" & LogText
-Close #myfilenumber
+    '----------------------------------------------------
+    'Log in the text-file
+    '----------------------------------------------------
+    fname = "Mylogfile.log.txt"
+    myfilenumber = FreeFile
+    Open fname For Append As #myfilenumber
+    Print #myfilenumber, FormatLogTime(Now()) & "--" & LogText
+    Close #myfilenumber
 
-End Sub
+    End Sub
 
-Function FormatLogTime(iDate As Date) As String
-FormatLogTime = Right("0000" & Year(iDate), 4) _
-              & Right("00" & Month(iDate), 2) _
-              & Right("00" & Day(iDate), 2) _
-              & " " _
-              & Right("00" & Hour(iDate), 2) _
-              & "." _
-              & Right("00" & Minute(iDate), 2) _
-              & "." _
-              & Right("00" & Second(iDate), 2)
+    Function FormatLogTime(iDate As Date) As String
+    FormatLogTime = Right("0000" & Year(iDate), 4) _
+                  & Right("00" & Month(iDate), 2) _
+                  & Right("00" & Day(iDate), 2) _
+                  & " " _
+                  & Right("00" & Hour(iDate), 2) _
+                  & "." _
+                  & Right("00" & Minute(iDate), 2) _
+                  & "." _
+                  & Right("00" & Second(iDate), 2)
 
-End Function
+    End Function
+
+    Private Function GetProcessMemory(ByVal app_name As String) As String
+        Dim Process As Object
+        Dim dMemory As Double
+        For Each Process In GetObject("winmgmts:").ExecQuery("Select WorkingSetSize from Win32_Process Where Name = '" & app_name & "'")
+            dMemory = Process.WorkingSetSize
+        Next
+        If dMemory > 0 Then
+            GetProcessMemory = ResizeKb(dMemory)
+        Else
+            GetProcessMemory = "0 Bytes"
+        End If
+    End Function
+
+    Private Function ResizeKb(ByVal b As Double) As String
+        Dim bSize(8) As String, i As Integer
+        bSize(0) = "Bytes"
+        bSize(1) = "KB" 'Kilobytes
+        bSize(2) = "MB" 'Megabytes
+        bSize(3) = "GB" 'Gigabytes
+        bSize(4) = "TB" 'Terabytes
+        bSize(5) = "PB" 'Petabytes
+        bSize(6) = "EB" 'Exabytes
+        bSize(7) = "ZB" 'Zettabytes
+        bSize(8) = "YB" 'Yottabytes
+        For i = UBound(bSize) To 0 Step -1
+            If b >= (1024 ^ i) Then
+                ResizeKb = ThreeNonZeroDigits(b / (1024 ^ _
+                    i)) & " " & bSize(i)
+                Exit For
+            End If
+        Next
+    End Function
+
+    Private Function ThreeNonZeroDigits(ByVal value As Double) As Double
+        If value >= 100 Then
+            ThreeNonZeroDigits = FormatNumber(value)
+        ElseIf value >= 10 Then
+            ThreeNonZeroDigits = FormatNumber(value, 1)
+        Else
+            ThreeNonZeroDigits = FormatNumber(value, 2)
+        End If
+    End Function
