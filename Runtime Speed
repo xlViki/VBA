@@ -1,0 +1,39 @@
+1. '//SpeedUp Routine
+
+    Sub example_ken() 
+        Dim reg As RegExp, cl As Range, m As Variant 
+
+        On Error GoTo EndNow 
+        SpeedOn 
+
+       'Do Your Thing
+
+    EndNow: 
+        SpeedOff 
+    End Sub 
+
+    Sub SpeedOn(Optional StatusBarMsg As String = "Running macro...") 
+        glb_origCalculationMode = Application.Calculation 
+        With Application 
+            .Calculation = xlCalculationManual 
+            .ScreenUpdating = False 
+            .EnableEvents = False 
+            .DisplayAlerts = False 
+            .Cursor = xlWait 
+            .StatusBar = StatusBarMsg 
+            .EnableCancelKey = xlErrorHandler 
+        End With 
+    End Sub 
+
+    Sub SpeedOff() 
+        With Application 
+            .Calculation = glb_origCalculationMode 
+            .ScreenUpdating = True 
+            .EnableEvents = True 
+            .DisplayAlerts = True 
+            .CalculateBeforeSave = True 
+            .Cursor = xlDefault 
+            .StatusBar = False 
+            .EnableCancelKey = xlInterrupt 
+        End With 
+    End Sub 
