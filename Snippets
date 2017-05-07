@@ -360,3 +360,33 @@
         End If
     Next
     End Sub
+    
+ 18. '//convert m d y dates to Number
+ 
+    Function MDYToNum(strCell As String)
+
+    Dim aCell() As String, i As Long, j As Long, y As Long, m As Long, d As Long
+
+    aCell = Split(strCell, " ")
+
+    For i = LBound(aCell) To UBound(aCell)
+            Select Case Right(aCell(i), 1)
+                Case "y"
+                    y = Replace(aCell(i), "y", "")
+                Case "m"
+                    m = Replace(aCell(i), "m", "")
+                Case "d"
+                    d = Replace(aCell(i), "d", "")
+            End Select
+    Next i
+
+    On Error GoTo ErrHandler
+
+    MDYToNum = y + m / 12 + d / 365
+    Exit Function
+
+    ErrHandler:
+        MDYToNum = "An error occured. Please Check input"
+        Resume Next
+
+    End Function
