@@ -83,3 +83,14 @@ Function regExp(strInput As String, matchPattern As String, Optional ByVal outpu
     End If
 End Function
 
+Private Function AlphaNum(nm As String) As String
+
+Dim a$, b$, c$, i As Integer
+a$ = nm
+For i = 1 To Len(a$)
+    b$ = Mid(a$, i, 1)
+    If b$ Like "[A-Z,a-z,0-9]" Then c$ = c$ & b$
+Next i
+AlphaNum = c$
+
+End Function
