@@ -1,0 +1,57 @@
+1. //Save Excel Range as High Quality EMF (Enhanced meta File)
+
+'module 1
+    Sub printToEMF()
+      Call printToEMF(Selection) 'ActiveWindow.VisibleRange
+      MsgBox "Its done ;-)"
+    End Sub
+
+'module 2
+
+    Option Explicit
+
+    Private Declare Function OpenClipboard Lib "User32" _
+                                           (ByVal hwnd As Long) As Long
+    Private Declare Function CloseClipboard Lib "User32" () As Long
+    Private Declare Function GetClipboardData Lib "User32" _
+                                              (ByVal uFormat As Long) As Long
+    Private Declare Function CopyEnhMetaFileA Lib "Gdi32" _
+                                              (ByVal hemfSrc As Long, ByVal lpszFile As String) As Long
+    Private Declare Function DeleteEnhMetaFile Lib "Gdi32" _
+                                               (ByVal hdc As Long) As Long
+
+    Sub printToEMF(obj As Object)
+
+      Dim fileEMF, Rep  As Long
+
+      fileEMF = ThisWorkbook.Path & "\tmp_img.emf"
+
+      If Dir$(fileEMF) <> "" Then
+        Kill fileEMF
+      End If
+
+      If Export2emf(obj, fileEMF) = "" Then
+        MsgBox "Error when exporting a file !", vbCritical
+      End If
+    End Sub
+
+    Private Function Export2emf(obj As Object, _
+                                Filename, Optional Apparence, _
+                                Optional Format, Optional Size) As String
+
+      Export2emf = Filename
+
+      If TypeName(obj.Parent) = "Chart" Then
+        obj.Parent.CopyPicture Apparence, Format, Size
+      ElseIf TypeName(obj) <> "Chart" Then
+        obj.CopyPicture Apparence, Format
+      Else
+        obj.CopyPicture Apparence, Format, Size
+      End If
+      OpenClipboard 0
+      If DeleteEnhMetaFile(CopyEnhMetaFileA(GetClipboardData(14), _
+                                            Export2emf)) = 0 Then Export2emf = ""
+      CloseClipboard
+    End Function
+
+
