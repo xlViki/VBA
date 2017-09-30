@@ -55,3 +55,320 @@
     End Function
 
 
+2. // Save Excel Range as a BMP file (PNG/JPEG)
+
+       'Module Main
+       Sub PrintFomatter()
+            Dim HeaderTitle As String
+            Dim PrintSheet As String
+            Dim AddiTioNal_InFo_Check As Boolean
+
+            'If ActiveSheet.Name Like "*PRINT*" Then Exit Sub
+            'Call miscellaneous.Initializer
+
+
+            'Gets the header title
+
+            HeaderTitle = ActiveSheet.Name '"Schedule A"
+            PrintSheet = ActiveSheet.Name
+
+            'Generates the Header/Footer Banner
+            Call HeaderFooterDeveloper.HeaderFooter(HeaderTitle, AddiTioNal_InFo_Check)
+
+            'Formats Sheet
+            Call miscellaneous.PrintSheetDeveloper(HeaderTitle, PrintSheet, AddiTioNal_InFo_Check)
+
+            With Application
+                .EnableEvents = True
+                .ScreenUpdating = True
+                .StatusBar = False
+            End With
+
+       End Sub
+
+
+        'Module HeaderFooterDeveloper
+        
+        '=============================================================================
+        '- COPY PICTURES FROM A WORKSHEET TO .BMP FILES
+        '- VERSION 2 : uses code to save file instead of SendKeys/MS Paint
+        '---------------------------------------------------------------------
+        '- Picks up Embedded objects (OLEObjects) and Pictures (Picture objects)
+        '=============================================================================
+        '- *** AMEND THESE CONST VALUES AND RUN THE MACRO FROM THE SHEET
+        Const BitmapFileName As String = "XLpicture" 'file name without "_00x.bmp"
+        Const MyPictureFolder As String = "C:\Users\singhvi\AppData\Local\Temp" ' target folder for files
+        '-------------------------------------------------------------------------
+        '- 1. Copies all pictures from sheet.
+        '- 2. Gets next file name in the series (filenames format like "xxx_001.bmp")
+        '- 3. Saves file in target folder.
+        '- Brian Baulsom November 2008
+        '=============================================================================
+        '- VERSION 1 : Userform Screen copy July 2008 using SendKeys/MS Paint
+        '- Save Userform as BMP
+        '=============================================================================
+        '- DECLARATIONS & VARIABLES TO SAVE PICTURE FILE FROM CLIPBOARD
+        Private Declare Function OpenClipboard Lib "User32" (ByVal hwnd As Long) As Long
+        Private Declare Function GetClipboardData Lib "User32" (ByVal wFormat As Integer) As Long
+        Private Declare Function CloseClipboard Lib "User32" () As Long
+        Private Declare Function OleCreatePictureIndirect Lib "olepro32.dll" _
+            (PicDesc As uPicDesc, RefIID As GUID, ByVal fPictureOwnsHandle As Long, IPic As IPicture) As Long
+        '------------------------------------------------------------------------------
+        '- IPicture OLE Interface
+        Private Type GUID
+        Data1 As Long
+        Data2 As Integer
+        Data3 As Integer
+        Data4(0 To 7) As Byte
+        End Type
+        '-store the bitmap information
+        Private Type uPicDesc
+        Size As Long
+        Type As Long
+            hPic As Long
+            hPal As Long
+        End Type
+        '-------------------------------------------------------------------------------
+        Const CF_BITMAP = 2
+        Const CF_PALETTE = 9
+        Const IMAGE_BITMAP = 0
+        Const LR_COPYRETURNORG = &H4
+        Const PICTYPE_BITMAP = 1
+        Dim IID_IDispatch As GUID
+        Dim uPicinfo As uPicDesc
+        Dim IPic As IPicture
+        Dim hPtr As Long
+        '=============================================================================
+        '- WORKSHEET/PICTURE VARIABLES
+        Dim HeadFoot As Range
+        Dim MyPicture As Object        ' PICTURES IN SHEET
+        Dim PictureCount As Integer
+        '-----------------------------------------------------------------------------
+        '- BITMAP FILE : FULL PATH & FILE NAME
+        Dim HeaderFileName As String
+        Dim FullFileName As String '= MyPictureFolder & HeaderFileName & "_00x.bmp"
+        '-----------------------------------------------------------------------------
+        '- GET NEXT FILE NAME (Uses FileSystemObject)
+        Dim fso As Object
+        Dim FileNumber As Integer
+        Dim LastFileNumber As Integer
+        '-- end of declarations ------------------------------------------------------
+
+        '- SUBROUTINE : SAVE PICTURE FROM CLIPBOARD AS A BITMAP FILE (JAAFAR'S CODE)
+        '- Called from main routine
+        '=============================================================================
+        Private Sub SAVE_PICTURE()
+            ActiveSheet.Range("A1").Select  ' focus from button or picture to sheet
+            LastFileNumber = 0              ' counter
+            Set fso = CreateObject("Scripting.FileSystemObject") ' FOR NEXTFILENAME
+
+            FullFileName = "C:\Users\Public\Pictures\" & HeaderFileName
+
+            'Sheet2.Range ("A1:AL5")
+            Application.ScreenUpdating = True
+            HeadFoot.CopyPicture Appearance:=xlScreen, Format:=xlBitmap       ' MyPicture.Copy
+            Application.ScreenUpdating = False
+            '-----------------------------------------------------------------
+            OpenClipboard 0
+            hPtr = GetClipboardData(CF_BITMAP)
+            CloseClipboard
+
+            '-------------------------------------------------------------------------
+             'Create the interface GUID for the picture
+            With IID_IDispatch
+                .Data1 = &H7BF80980
+                .Data2 = &HBF32
+                .Data3 = &H101A
+                .Data4(0) = &H8B
+                .Data4(1) = &HBB
+                .Data4(2) = &H0
+                .Data4(3) = &HAA
+                .Data4(4) = &H0
+                .Data4(5) = &H30
+                .Data4(6) = &HC
+                .Data4(7) = &HAB
+            End With
+            '------------------------------------------------------------------------
+             '  Fill uPicInfo with necessary parts.
+            With uPicinfo
+
+                .Size = Len(uPicinfo) ' Length of structure.
+                .Type = PICTYPE_BITMAP ' Type of Picture
+                .hPic = hPtr ' Handle to image.
+                .hPal = 0 ' Handle to palette (if bitmap).
+            End With
+            '------------------------------------------------------------------------
+             'Create the Picture Object
+            OleCreatePictureIndirect uPicinfo, IID_IDispatch, True, IPic
+            '------------------------------------------------------------------------
+             'Save Picture
+            stdole.SavePicture IPic, FullFileName
+            '------------------------------------------------------------------------
+             'fix the clipboard (it seems to go messed up)
+            Selection.CopyPicture Appearance:=xlScreen, Format:=xlBitmap
+            '------------------------------------------------------------------------
+        End Sub
+
+
+
+        Sub HeaderFooter(Header As String, AddiTioNal_InFo_Check As Boolean)
+
+        Dim i As Long ' i: Counter
+        Dim AddiTioNal_InFo As String
+        'Worksheets("Header_Footer_Developer").Range("F6").Font.Color = RGB(255, 255, 255)
+        'Worksheets("Header_Footer_Developer").Range("J6").Font.Color = RGB(255, 255, 255)
+
+        'Gets additional info is USED by user
+        'AddiTioNal_InFo = BOM.Cells(BOM.Range("ToolMatNum").Row - 1, BOM.Range("ToolMatNum").Column)
+
+        'Check is user added additonal info
+        If Not AddiTioNal_InFo = "" And Not AddiTioNal_InFo = "-" And Not AddiTioNal_InFo = "N/A" And Not AddiTioNal_InFo = "n/a" And _
+                Not AddiTioNal_InFo = " " And Not AddiTioNal_InFo = "NA" And Not AddiTioNal_InFo = "na" Then AddiTioNal_InFo_Check = True
+
+
+        'Worksheets("Header_Footer_Developer").Range("A2") = Header & ": " & BOM.Range("D1")
+
+        'Calls SAVE_PICTURE to save Header and Footer banner
+            'First Page Header Generator
+
+                Set HeadFoot = Worksheets("Header_Footer_Developer").Range("B1:C4")
+
+                HeaderFileName = "FirstHeaderFileFor_SchA.tiff"
+                SAVE_PICTURE   'Calls routine to save picture
+
+            'Footer Generator
+        '        Set HeadFoot = Worksheets("Header_Footer_Developer").Range("A33:AF35")
+        '        HeaderFileName = "FooterFileFor_SchA.png"
+        '        SAVE_PICTURE   'Calls routine to save picture
+
+
+        End Sub
+
+
+        'Miscellaneous
+        
+        Sub PrintSheetDeveloper(HeaderTitle As String, PrintSheet As String, AddiTioNal_InFo_Check As Boolean) 'This Routine Develops a Printer-Friendly WorkSheet.
+
+            Dim PrintSheetTitle As String
+            Dim nm As Name, WS As Worksheet
+            Dim LastUsedRow(1 To 4) As Long
+            Dim FirstRow As Long, LastCol As Long, i As Long, LastRow As Long, LastRowRng As Range, MergeRng(1 To 2) As Range
+            Dim DPI_SettingFactor As Double, DPI_Setting As String
+            PrintSheetTitle = HeaderTitle '"PRINT--" & HeaderTitle
+
+            On Error Resume Next
+            Application.DisplayAlerts = False
+            'For Each WS In ActiveWorkbook.Worksheets
+            '    If WS.Name Like "*PRINT*" Then WS.Delete
+            'Next WS
+            Application.DisplayAlerts = True
+            On Error GoTo 0
+
+            'Creats A Copy of Active Spreadsheet
+            'Worksheets(PrintSheet).Copy before:=BOM
+
+            'Gets Screen DPI Settings to Adjust Print Options Accordingly
+            DPI_Setting = GetDpi()
+            If DPI_Setting Like "96" Then
+                DPI_SettingFactor = 0.97385
+            Else
+                DPI_SettingFactor = 1
+            End If
+
+
+            'Changes Name of ActiveSheet
+            'ActiveSheet.Name = PrintSheetTitle
+
+            'Changes Sheet Tab color to grey
+            Worksheets(PrintSheetTitle).Tab.ColorIndex = xlNone
+
+            ActiveWindow.View = xlPageBreakPreview 'xlPageLayoutView
+
+            Worksheets(PrintSheetTitle).Rows("1:4").Hidden = True
+
+            'Adjust the Print Setup for Bill of Materials
+            With Worksheets(PrintSheetTitle).PageSetup
+                .ScaleWithDocHeaderFooter = False
+                Select Case True
+                'FORMATS BoM SHEET
+                    Case True 'HeaderTitle = "Schedule A"
+                        .PaperSize = xlPaperLetter
+                        With .LeftHeaderPicture
+                            .Filename = "C:\Users\Public\Pictures\FirstHeaderFileFor_SchA.tiff"
+                            .LockAspectRatio = True
+                            .Width = Application.InchesToPoints(3.5 * DPI_SettingFactor) '9.5
+            '                .Height = 100
+            '                .Width = 150
+            '                .Brightness = 0.36
+            '                .ColorType = msoPictureAutomatic
+            '                .Contrast = 0.39
+            '                .CropBottom = 0
+            '                .CropLeft = 0
+            '                .CropRight = 0
+            '                .CropTop = 0
+                        End With
+
+                        '.CenterFooterPicture.Filename = "C:\Users\Public\Pictures\FooterFileFor_Bill of Materials.png"
+                        '.CenterFooter = "&G"
+                        '.CenterFooterPicture.Width = Application.InchesToPoints(9.6 * DPI_SettingFactor)
+                        .LeftHeader = "&G"
+                        .TopMargin = Application.InchesToPoints(0.8)
+                        .BottomMargin = Application.InchesToPoints(0.65)
+                        .HeaderMargin = Application.InchesToPoints(0.3)
+                        .FooterMargin = Application.InchesToPoints(0.3)
+                        .LeftMargin = Application.InchesToPoints(0.5)
+                        .RightMargin = Application.InchesToPoints(0.5)
+                        .PrintQuality = 600
+                        .AlignMarginsHeaderFooter = True
+                        '.CenterHorizontally = True
+            '            .CenterFooterPicture.LockAspectRatio = True
+            '            .LeftFooter = "&" & Chr(34) & "Arial, regular" & Chr(34) & "&7" & "&B Print Date: &B &D " & "    " & Chr(13) & Chr(13) '& Chr(13) 'vbCrLf & vbCrLf
+                        .RightFooter = "&" & Chr(34) & "Arial &8" & Chr(34) & "&7" & "Page &P of &N " & Chr(13) & Chr(13) '& Chr(13)
+                        .PrintArea = Worksheets(PrintSheetTitle).Range("Print_Area").Address 'Range(Cells(FirstRow - 1, 1), Cells(LastUsedRow(4), LastCol)).Address
+                End Select
+                Application.PrintCommunication = True
+
+            End With
+
+                ActiveSheet.ExportAsFixedFormat _
+                    Type:=xlTypePDF, _
+                    Filename:=Application.ActiveWorkbook.Path & Application.PathSeparator & ActiveSheet.Name & ".pdf", _
+                    Quality:=xlQualityStandard, _
+                    IncludeDocProperties:=True, _
+                    IgnorePrintAreas:=False, _
+                    OpenAfterPublish:=True
+
+        End Sub
+
+        'Module DPI
+        Option Explicit
+        Private Const LOGPIXELSX As Long = 88
+
+        Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32.dll" ( _
+        ByVal hdc As Long, _
+        ByVal nIndex As Long) As Long
+
+        Private Declare PtrSafe Function GetDC Lib "user32.dll" ( _
+        ByVal hwnd As Long) As Long
+
+        Declare PtrSafe Function ReleaseDC Lib "user32.dll" ( _
+        ByVal hwnd As Long, _
+        ByVal hdc As Long) As Long
+
+        Public Function GetDpi() As Long
+
+            Dim hdcScreen As Long
+            Dim iDPI As Long
+
+            iDPI = -1
+            hdcScreen = GetDC(0)
+            If (hdcScreen) Then
+            iDPI = GetDeviceCaps(hdcScreen, LOGPIXELSX)
+            ReleaseDC 0, hdcScreen
+            End If
+
+            GetDpi = iDPI
+
+        End Function
+
+
