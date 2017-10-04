@@ -17,7 +17,60 @@
         Progress.Show
    End Sub
 
-2. Run common macro from multiple checkboxes
+
+2. '//Make PrrogressBar or other userforms Modeless (Always on Top of all windows)
+
+      Option Explicit 
+       'API function to enable/disable the Excel Window
+      Private Declare Function FindWindowA Lib "user32" _ 
+      (ByVal lpClassName As String, ByVal lpWindowName As String) As Long 
+
+      Private Declare Function EnableWindow Lib "user32" _ 
+      (ByVal hwnd As Long, ByVal bEnable As Long) As Long 
+
+      Private Declare Function SetWindowPos Lib "user32" ( _ 
+      ByVal hwnd As Long, ByVal hWndInsertAfter As Long, _ 
+      ByVal X As Long, ByVal Y As Long, ByVal cx As Long, _ 
+      ByVal cy As Long, ByVal wFlags As Long) As Long 
+
+      Private Const SWP_NOSIZE = &H1 
+      Private Const SWP_NOMOVE = &H2 
+      Private Const FLAGS As Long = SWP_NOMOVE Or SWP_NOSIZE 
+      Private Const HWND_TOPMOST = -1 
+      Private Const HWND_NOTOPMOST = -2 
+      Private mlHWnd As Long 
+      Private mbDragDrop As Boolean 
+      Private FormHWnd As Long 
+
+      Private Sub cmdNotTop_Click() 
+          SetWindowPos FormHWnd, HWND_NOTOPMOST, 0, 0, 0, 0, FLAGS 
+      End Sub 
+
+      Private Sub cmdTop_Click() 
+          SetWindowPos FormHWnd, HWND_TOPMOST, 0, 0, 0, 0, FLAGS 
+      End Sub 
+
+      Private Sub UserForm_Activate() 
+          On Error Resume Next 
+           'Find the Excel main window
+          mlHWnd = FindWindowA("XLMAIN", Application.Caption) 
+          FormHWnd = FindWindowA(vbNullString, Me.Caption) 
+          Call cmdTop_Click 
+           'Enable the Window - makes the userform modeless
+          EnableWindow mlHWnd, 1 
+          mbDragDrop = Application.CellDragAndDrop 
+          Application.CellDragAndDrop = False 
+      End Sub 
+
+      Private Sub btnOK_Click() 
+          Application.CellDragAndDrop = mbDragDrop 
+          Call cmdNotTop_Click 
+          Unload Me 
+      End Sub 
+
+
+
+3. Run common macro from multiple checkboxes
    '//Class Module - Class1
       Option Explicit
       Public WithEvents CBXGroup As MSForms.CheckBox
