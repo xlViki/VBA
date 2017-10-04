@@ -18,7 +18,7 @@
    End Sub
 
 
-2. '//Make PrrogressBar or other userforms Modeless (Always on Top of all windows)
+2. '//Make ProgressBar or other userforms Modeless (Always on Top of all windows)
 
       Option Explicit 
        'API function to enable/disable the Excel Window
@@ -156,7 +156,7 @@
         Sheets(1).ListObjects("Table1").AutoFilter.ShowAllData
         End Sub
 
-3. Load Combobox on Workbook Open
+4. Load Combobox on Workbook Open
   'MSForms Combobox
       Sheets("Sheet1").Shapes.Range(Array("Drop Down 1")).Select
        With Selection
@@ -170,7 +170,7 @@
   'ActiveX Combobox
       Sheets(1).ComboBox21.List = Sheets(1).Range("A2:A10").Value
 
-4. '// Add centered checkboxes to all selected cells
+5. '// Add centered checkboxes to all selected cells
 
    'ActiveSheet.DrawingObjects.Delete ' optional to delete all shapes when testing
    Dim c As Range, cb As CheckBox
@@ -186,7 +186,7 @@
    Selection.NumberFormat = ";;;" ' optional to hide the cell values
    Selection = True ' optional to check all at once (or 'selection = [#N/A]' for all xlMixed)
    
-5. '// Insert a checkox in each cell
+6. '// Insert a checkox in each cell
    Sub AddCheckBoxes()
 
    Dim cb As CheckBox
