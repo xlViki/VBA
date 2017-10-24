@@ -24,3 +24,21 @@
 '                collDeals.Add Split(itm, "|")(1), Split(itm, "|")(1)
 '            On Error GoTo 0
 '        Next
+
+
+'Alternative method 2
+
+        '//Find all the Deals for the partner
+'
+'        For Each itm In Application.Index(arrPartnerRows, 0, 3)
+'            On Error Resume Next
+'                collDeals.Add itm, itm
+'            On Error GoTo 0 'ErrorHandler
+'        Next itm
+        
+        'Find all the Legal Entities for the partner
+'        For Each itm In Application.Index(arrPartnerRows, 0, 2)
+'            On Error Resume Next
+'                collEntities.Add itm, itm
+'            On Error GoTo 0 'ErrorHandler
+'        Next itm
