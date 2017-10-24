@@ -1,0 +1,26 @@
+
+      Set rngData = wsPivot.Range("A6:L" & lrowPivot)
+      Set arrData = rngData
+
+      arrPartnerRows = Filter2DArray(arrData, 1, collPartners(i), False)
+
+      '//Find all the Deals/Legal Entities for the partner
+      Dim j As Long, rowDiffDetail As Long, rowDiffDeal As Long, rowDiffLE As Long
+      Dim dict As Object, totRowDetail As Long, totRowDeal As Long, totRowLE As Long, rngtotRowDeal As Range, rngtotRowLE As Range
+
+      Set dict = CreateObject("Scripting.Dictionary")
+      For j = 4 To UBound(arrPartnerRows)
+          dict(arrPartnerRows(j, 2) & "|" & arrPartnerRows(j, 3)) = dict(arrPartnerRows(j, 2) & "|" & arrPartnerRows(j, 3))
+
+          On Error Resume Next
+          collEntities.Add arrPartnerRows(j, 2), arrPartnerRows(j, 2)
+          collDeals.Add arrPartnerRows(j, 3), arrPartnerRows(j, 3)
+          On Error GoTo 0
+      Next
+      '//Alternative method
+'        For Each itm In dict
+'            On Error Resume Next
+'                collEntities.Add Split(itm, "|")(0), Split(itm, "|")(0)
+'                collDeals.Add Split(itm, "|")(1), Split(itm, "|")(1)
+'            On Error GoTo 0
+'        Next
