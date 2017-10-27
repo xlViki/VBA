@@ -15,3 +15,35 @@
     Function IsInArray(stringToBeFound As String, arr As Variant) As Boolean
       IsInArray = (UBound(Filter(arr, stringToBeFound)) > -1)
     End Function
+ 
+3. '//ArrayList Objects
+    Sub f()
+
+    Dim myArrayList As Object
+    Dim i As Long
+
+    Set myArrayList = ArrayList
+
+    'Add ArrayList child objects to the ArrayList object:
+    myArrayList.Add ArrayList
+    i = myArrayList.Count - 1
+    'Add items to the child ArrayList:
+    myArrayList.Item(i).Add "A"
+    myArrayList.Item(i).Add "B"
+    myArrayList.Item(i).Add "C"
+
+    'Add some more:
+    myArrayList.Add ArrayList
+    i = myArrayList.Count - 1
+    myArrayList.Item(i).Add 1
+    myArrayList.Item(i).Add 2
+    myArrayList.Item(i).Add 3
+
+    'Dump this in to a VBA Array, if needed:
+    Dim myArray
+    myArray = myArrayList.ToArray()
+
+    End Sub
+    Function ArrayList()
+        Set ArrayList = CreateObject("System.Collections.ArrayList")
+    End Function
