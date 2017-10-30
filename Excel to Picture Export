@@ -371,4 +371,90 @@
 
         End Function
 
+3 '//Faster Code for converting Excel Ranges to Pictures
+    'Use like
+    Private Sub CommandButton1_Click()
+    'RangeToJPG "k3:r23", "D:\labbmp\trya.jpg"  ' a range
+    RangeToJPG "SelAdd", "D:\labbmp\tryb.jpg"     ' a selection
+    End Sub
 
+    Option Explicit: Option Compare Text
+    Private Declare Function CreateCompatibleDC& Lib "gdi32" (ByVal Hdc&)
+    Private Declare Function CreateCompatibleBitmap& Lib "gdi32" (ByVal Hdc&, ByVal nWidth&, ByVal nHeight&)
+    Private Declare Function DeleteDC& Lib "gdi32" (ByVal Hdc&)
+    Private Declare Function SelectObject& Lib "gdi32" (ByVal Hdc&, ByVal hObject&)
+    Private Declare Function DeleteObject& Lib "gdi32" (ByVal hObject&)
+    Private Declare Sub CLSIDFromString Lib "ole32" (ByVal lpsz As Any, pclsid As Any)
+    Private Declare Function GetDC& Lib "user32" (ByVal hwnd&)
+    Private Declare Function OleCreatePictureIndirect& Lib "olepro32.dll" (PicArray As Any, RefIID As Any, ByVal OwnsHandle&, IPic As Any)
+    Private Declare Function StretchBlt& Lib "gdi32" _
+                                         (ByVal Hdc&, ByVal x&, ByVal y&, _
+                                          ByVal nWidth&, ByVal nHeight&, _
+                                          ByVal hSrcDC&, ByVal xSrc&, ByVal ySrc&, _
+                                          ByVal nSrcWidth&, ByVal nSrcHeight&, ByVal dwRop&)  'xxl
+    '
+    Public Const nCOPY& = &HCC0020
+    Private Type PictDesc
+        cbSizeofStruct As Long
+        picType As Long
+        hImage As Long
+        xExt As Long
+        yExt As Long
+    End Type
+    '
+    ' there is some difference but both work OK here
+    'Private Const StdPicGUID$ = "{7BF80980-BF32-101A-8BBB-00AA00300CAB}"
+    Private Const StdPicGUID$ = "{00020400-0000-0000-C000-000000000046}"
+    '
+    'get the  range ....   left top width height in pixels
+    '
+    Sub RangeToPix(L&, T&, W&, H&, Optional RaAd$ = "SelAdd")
+    'assuming screen as normal pts to pix of 3:4... zoom is a percent
+    '
+        Dim Zoomp!: Zoomp = ActiveWindow.Zoom / 75
+        If RaAd = "SelAdd" Then RaAd = Selection.Address
+        '
+        With Range(RaAd)
+            L = .Left * Zoomp
+            T = .Top * Zoomp
+            W = .Width * Zoomp
+            H = .Height * Zoomp
+        End With
+        L = L + ActiveWindow.PointsToScreenPixelsX(0)
+        T = T + ActiveWindow.PointsToScreenPixelsY(0)
+    End Sub
+    '
+    ' a selection or a range from a worksheet  >>> JPG file
+    '
+    Sub RangeToJPG(RaAd$, ToFileBmp$, Optional WidthFac! = 1!, Optional HeightFac! = 1!)
+        Dim MBMPhdc&, hMbmp&, Hwnd0&
+        Dim wPic As stdole.IPicture, PicDes As PictDesc, IPic(15) As Byte
+        Dim L&, T&, W&, H&, Wt&, Ht&
+        '
+        RangeToPix L, T, W, H, RaAd  ' to pixels'
+        Wt = W * WidthFac
+        Ht = H * HeightFac
+        Hwnd0 = GetDC(0)    ' screen
+        '
+        ' range needs to be visible on the worksheet  .. zoom it to show all
+        '
+        'Make the Memory bit map
+        '
+        MBMPhdc = CreateCompatibleDC(Hwnd0)  ' get an application DC
+        hMbmp = CreateCompatibleBitmap(Hwnd0, Wt, Ht)    ' make map to size
+        DeleteObject SelectObject(MBMPhdc, hMbmp)   ' set the Memory HDC
+        ' using StretchBlt to scale  size
+        StretchBlt MBMPhdc, 0, 0, Wt, Ht, Hwnd0, L, T, W, H, nCOPY    ' copy to memory Bit Map
+        ' as Pic
+        '
+        PicDes.picType = 1
+        PicDes.hImage = hMbmp
+        PicDes.cbSizeofStruct = Len(PicDes)
+        CLSIDFromString StrPtr(StdPicGUID), IPic(0)
+        OleCreatePictureIndirect PicDes, IPic(0), True, wPic
+        SavePicture wPic, ToFileBmp
+        'tidy memory
+        DeleteObject hMbmp
+        DeleteObject MBMPhdc
+        DeleteDC MBMPhdc    'should there be a DeleteDC also ????
+    End Sub
