@@ -17,3 +17,38 @@ strPrinter = Split(strPrinter, ",")(0)
 GetDefaultPrinter = strPrinter
 
 End Function
+
+3. // Not WScript - Set ActivePrinter (not Default)
+
+    'Sub SetActPrinter(PrinterName As String)
+    '
+    'Dim PortNumber As Integer
+    'Dim PrinterPort As String
+    'Dim PrinterFullName As String
+    'Dim PrinterFound As Boolean
+    'Dim lCount As Long
+    '
+    'PrinterFound = False
+    'On Error Resume Next
+    ''-------------------------------------------------------------------------
+    ''- LOOP Ne: NUMBERS
+    'For PortNumber = 0 To 12
+    '    PrinterPort = "Ne" & Format(PortNumber, "00") & ":"
+    '    PrinterFullName = PrinterName & PrinterNumber & " on " & PrinterPort
+    '    '---------------------------------------------------------------------
+    '    '- SET ACTIVEPRINTER
+    '    Application.ActivePrinter = PrinterFullName
+    '    '---------------------------------------------------------------------
+    '    '- IF ERROR TRY NEXT PRINTER
+    '    If Err.Number = 0 Then
+    ''            Sheets(Array("Sheet1", "Sheet2", "Sheet3")).Select
+    ''            ActiveWindow.SelectedSheets.PrintOut Copies:=1, Collate:=True, PrintToFile:=True, PrToFileName:=(Sheets("Sheet1").Range("A1").value & ".xps")
+    '        PrinterFound = True
+    ''            Sheets(Array("Sheet1")).Select
+    '        Exit For
+    '    Else
+    '        Err.Clear   ' clear for next error
+    '    End If
+    '    '---------------------------------------------------------------------
+    'Next PortNumber
+    'End Sub
