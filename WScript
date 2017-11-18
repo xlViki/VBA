@@ -1,0 +1,19 @@
+1. //Set Default Printer
+Sub SetDefaultPrinter(PrinterName As String)
+
+    Set WshNetwork = CreateObject("WScript.Network")
+    WshNetwork.SetDefaultPrinter PrinterName
+    Set WshNetwork = Nothing
+
+End Sub
+
+2. //Get Default Printer Name
+Function GetDefaultPrinter() As String
+
+Set oShell = CreateObject("WScript.Shell")
+strValue = "HKCU\Software\Microsoft\Windows NT\CurrentVersion\Windows\Device"
+strPrinter = oShell.RegRead(strValue)
+strPrinter = Split(strPrinter, ",")(0)
+GetDefaultPrinter = strPrinter
+
+End Function
