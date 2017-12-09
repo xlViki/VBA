@@ -119,3 +119,82 @@ x = CombineTwoFilesxPDF(mypdf1FileName:=cFile, insertafterpageNo:=InsAfterPage, 
 Debug.Print x
 End Sub
  
+
+
+
+2. '// Hide PDF Publishing progress bar
+
+  ' WINDOWS API FUNCTIONS:
+  Private Declare Function SetWinEventHook Lib "user32" (ByVal eventMin As Long, ByVal eventMax As Long, ByVal hmodWinEventProc As Long, ByVal pfnWinEventProc As Long, ByVal idProcess As Long, ByVal idThread As Long, ByVal dwFlags As Long) As Long
+  Private Declare Function UnhookWinEvent Lib "user32" (ByVal hWinEventHook As Long) As Long
+  Private Declare Function apiGetClassName Lib "user32" Alias "GetClassNameA" (ByVal hWnd As Long, ByVal lpClassname As String, ByVal nMaxCount As Long) As Long
+  Private Declare Function apiShowWindow Lib "user32" Alias "ShowWindow" (ByVal hWnd As Long, ByVal nCmdShow As Long) As Long
+
+  ' CONSTANT VARIABLES:
+  Private Const SW_HIDE = 0
+  Private Const DLG_CLSID = "CMsoProgressBarWindow"
+  Private Const EVENT_SYSTEM_FOREGROUND = &H3&
+  Private Const WINEVENT_OUTOFCONTEXT = 0
+
+  ' GLOBAL VARIABLES:
+  Dim long_WinEventHook As Long
+
+  Public Function StartEventHook() As Long
+   long_WinEventHook = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, 0&, AddressOf WinEventFunc, 0, 0, WINEVENT_OUTOFCONTEXT)
+   StartEventHook = long_WinEventHook
+  End Function
+
+  Public Sub StopEventHook()
+   Dim b_unhooked As Boolean
+   If long_WinEventHook = 0 Then
+    MsgBox "WinEventHook couldn't be stopped! " & _
+    "Variable 'long_WinEventHook' is empty! " & _
+    "Better restart Windows now!"
+    Exit Sub
+   End If
+   b_unhooked = UnhookWinEvent(long_WinEventHook)
+   If b_unhooked = True Then
+   Else
+    MsgBox "WinEventHook couldn't be stopped! " & _
+    "Variable 'b_unhooked' is false! " & _
+    "Better restart Windows now!"
+   End If
+  End Sub
+
+  ' CALLBACK FUNC OF "SetWinEventHook" (DEFINE ACTIONS TO RUN ON THE EVENTS):
+  ' http://stackoverflow.com/questions/20486944/detecting-in-vba-when-the-window-containing-an-excel-instance-becomes-active
+  Public Function WinEventFunc(ByVal HookHandle As Long, ByVal LEvent As Long, ByVal hWnd As Long, ByVal idObject As Long, ByVal idChild As Long, ByVal idEventThread As Long, ByVal dwmsEventTime As Long) As Long
+   'This function is a callback passed to the win32 api
+   'We CANNOT throw an error or break. Bad things will happen
+   On Error Resume Next
+   Dim l_handle As Long
+   Dim s_buffer As String
+   Dim b_visible As Boolean
+   Dim i_bufferLength As Integer
+   s_buffer = String$(32, 0)
+   i_bufferLength = apiGetClassName(hWnd, s_buffer, Len(s_buffer))
+   If Left(s_buffer, i_bufferLength) = DLG_CLSID Then
+    b_visible = apiShowWindow(hWnd, SW_HIDE)
+    WinEventFunc = hWnd
+   End If
+  End Function
+  In your VBA code, when you want to save your excel workbook as PDF, you would call above macros like this:
+
+  ' ADD WINDOWS EVENT HOOK BEFORE SAVING:
+  Application.Run XL_WB.Name & "!StartEventHook"
+
+  ' SAVE EXCEL AS PDF:
+  ' https://msdn.microsoft.com/de-de/library/microsoft.office.tools.excel.worksheetbase.exportasfixedformat.aspx
+  XL_WB.ExportAsFixedFormat _
+   Type:=xlTypePDF, _
+   Filename:="C:\PDF.pdf", _
+   Quality:=xlQualityStandard, _
+   IncludeDocProperties:=True, _
+   IgnorePrintAreas:=False, _
+   OpenAfterPublish:=False
+
+  ' REMOVE WINDOWS EVENT HOOK AFTER SAVING:
+  Application.Run XL_WB.Name & "!StopEventHook"
+  
+    Warning:
+  If the "SetWinEventHook" isn't stopped again due to some errors, it is better to restart your system, otherwise you could run into some serious problems with Windows.
