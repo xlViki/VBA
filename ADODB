@@ -212,3 +212,120 @@ ErrHandler:
         MsgBox strMsg
     Exit Sub
 End Sub
+
+
+6. '// Get Sheet Names from Closed Workbook Method #1
+    Public Function GetSheetNames(strpath As String) As Variant
+
+        Dim i As Long, arrSheetNames() As String
+        Application.ScreenUpdating = False
+
+
+            Set cn = New ADODB.Connection
+            Set rs = New ADODB.Recordset
+
+            'cn.Open "Provider=Microsoft.ACE.OLEDB.12.0;Data Source = " & strpath & ";Extended Properties=""Excel 12.0 Xml;HDR=NO"";"
+
+                If Right(strpath, 3) = "xls" Then
+                    cn.Open "Provider=Microsoft.Jet.OLEDB.4.0;" & _
+                          "Data Source=" & strpath & ";" & _
+                          "Extended Properties=""Excel 8.0;HDR=No;IMEX=1;"""
+                Else
+                    cn.Open "Provider=Microsoft.ACE.OLEDB.12.0;" & _
+                          "Data Source=" & strpath & ";" & _
+                          "Extended Properties=""Excel 8.0;HDR=No;IMEX=1;""" 'HDR = No leads the connection to treat first row as data too
+                End If
+
+
+           On Error GoTo ErrHandler
+           Set rs = cn.OpenSchema(adSchemaTables)
+
+             Do While Not rs.EOF
+                sSheetName = rs.Fields("table_name").Value
+    '            Debug.Print sSheetName
+                If sSheetName Like "*$*" And sSheetName Like "*DCF*" And Not sSheetName Like "*_xlnm*" And Not sSheetName Like "*dateadj*" And Not sSheetName Like "*Print*" Then
+                    ReDim Preserve arrSheetNames(i)
+                    arrSheetNames(i) = Replace(sSheetName, "$", "")
+                    i = i + 1
+                End If
+                rs.MoveNext
+             Loop
+
+             GetSheetNames = Join(arrSheetNames, ",")
+
+              rs.Close
+              Set cn = Nothing
+              Set rs = Nothing
+
+        Application.ScreenUpdating = True
+
+        Exit Function
+
+    ErrHandler:
+
+        Dim strMsg As String
+            strMsg = "Error " & Err.Number & " (" & Err.Description _
+            & ")"
+            MsgBox strMsg
+        Exit Function
+    End Function
+
+7.. '//Get Sheet Names from Closed Workbook Method #2
+        'Set references to Microsoft ActiveX Data objects 2.8 Library and Microsoft ADO Ext. 2.8 for DDL and Security.
+        
+    Option Explicit
+    Public mySheetname$
+    Public bln As Boolean
+
+    Function GetSheetsNames(WBName As String) As Collection
+    Dim objConn As ADODB.Connection
+    Dim objCat As ADOX.Catalog
+    Dim tbl As ADOX.Table
+    Dim sConnString As String
+    Dim sSheet As String
+    Dim Col As New Collection
+    sConnString = "Provider=Microsoft.Jet.OLEDB.4.0;" & _
+    "Data Source=" & WBName & ";" & _
+    "Extended Properties=Excel 8.0;"
+    Set objConn = New ADODB.Connection
+    objConn.Open sConnString
+    Set objCat = New ADOX.Catalog
+    Set objCat.ActiveConnection = objConn
+    For Each tbl In objCat.Tables
+    sSheet = tbl.Name
+    sSheet = Application.Substitute(sSheet, "'", "")
+    sSheet = Left(sSheet, InStr(1, sSheet, "$", 1) - 1)
+    On Error Resume Next
+    Col.Add sSheet, sSheet
+    On Error GoTo 0
+    Next tbl
+    Set GetSheetsNames = Col
+    objConn.Close
+    Set objCat = Nothing
+    Set objConn = Nothing
+    End Function
+
+    Sub SheetExistsClosed()
+    mySheetname = InputBox("Enter sheet name to check for existence:", "Sheet name verification", "Sheet1")
+    If mySheetname = "" Then Exit Sub
+
+    bln = False
+    Dim Col As Collection, Book As String, i As Long
+    Book = "C:\Your\File\Path\YourFileName.xls"
+    Set Col = GetSheetsNames(Book)
+
+    For i = 1 To Col.count
+    If mySheetname = Col(i) Then
+    bln = True
+    Exit For
+    End If
+    Next i
+
+    If bln = True Then
+    'Sheet name does exist in that workbook of interest
+    MsgBox mySheetname & " exists in the subject workbook.", 64, "OK to proceed"
+    Else
+    'Sheet name does NOT exist in that workbook of interest
+    MsgBox mySheetname & " does NOT exist in the subject workbook.", 64, "Do not proceed"
+    End If
+    End Sub
