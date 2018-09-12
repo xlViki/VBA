@@ -1,0 +1,854 @@
+1. '// Create List of all commandbars and controls
+
+'Method 1
+
+    Sub ListMenuStuff()
+
+    Dim row As Long
+    Dim Menu As CommandBarControl
+    Dim MenuItem As CommandBarControl
+    Dim SubMenuItem As CommandBarControl
+
+    row = 1
+    On Error Resume Next
+
+    cbCount = CommandBars(1).Controls.Count
+    For x = 1 To cbCount
+        For Each Menu In CommandBars(x).Controls
+            For Each MenuItem In Menu.Controls
+                For Each SubMenuItem In MenuItem.Controls
+                    Cells(row, 1) = Menu.Caption
+                    Cells(row, 2) = MenuItem.Caption
+                    Cells(row, 3) = SubMenuItem.Caption
+                    row = row + 1
+                Next
+            Next
+        Next
+    Next
+    End Sub
+    
+'Method 2
+
+    Private Sub GetMeIDs()
+        Dim ws As Worksheet
+        Dim Ctl As CommandBarControl
+        Dim cCtl As CommandBarControl
+        Dim i As Long, j As Long
+
+        Set ws = ThisWorkbook.Sheets("Sheet1")
+
+        On Error Resume Next
+
+        i = 1: j = 1
+
+        '~~> Loop through the Top Level menus like File, Edit, View etc
+        For Each Ctl In Application.VBE.CommandBars(1).Controls
+            '~~> Write the ID and caption to Col A
+            ws.Range("A" & i).Value = Ctl.ID & " - " & Ctl.Caption
+            i = i + 1
+
+            '~~> Loop through Sub Level menus like File~~>New Project, File~~>Open Project etc
+            For Each cCtl In Application.VBE.CommandBars(1).Controls(Ctl.Caption).Controls
+                '~~> Write the ID and caption to Col B
+                ws.Range("B" & j).Value = cCtl.ID & " - " & cCtl.Caption
+                j = j + 1
+            Next
+            i = j
+        Next
+    End Sub
+    
+2. '//Get all Commandbars and Controls via Userform display
+
+'Module - Accessibility
+
+    ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+    ' Definitions and Procedures relating to Accessibility, used by the Ribbon VBA  '
+    ' Demonstration UserForm. The constants have been lifted from oleacc.h, and are '
+    ' just a subset of those available.                                             '
+    '                                                                               '
+    '                                                    Tony Jollans, August 2008. '
+    ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+    Option Explicit
+
+    Public Const CHILDID_SELF                  As Long = &H0&
+
+    Private Const STATE_SYSTEM_UNAVAILABLE     As Long = &H1&
+    Private Const STATE_SYSTEM_INVISIBLE       As Long = &H8000&
+    Private Const STATE_SYSTEM_SELECTED        As Long = &H2&
+
+    Public Enum RoleNumber
+        ROLE_SYSTEM_CLIENT = &HA&
+        ROLE_SYSTEM_PANE = &H10&
+        ROLE_SYSTEM_GROUPING = &H14&
+        ROLE_SYSTEM_TOOLBAR = &H16&
+        ROLE_SYSTEM_PROPERTYPAGE = &H26&
+        ROLE_SYSTEM_GRAPHIC = &H28&
+        ROLE_SYSTEM_STATICTEXT = &H29&
+        ROLE_SYSTEM_Text = &H2A&
+        ROLE_SYSTEM_PAGETABLIST = &H3C&
+    End Enum
+
+    Private Enum NavigationDirection
+        NAVDIR_FIRSTCHILD = &H7&
+    End Enum
+
+    Private Declare Function AccessibleChildren _
+                    Lib "oleacc.dll" _
+                        (ByVal paccContainer As Object, _
+                         ByVal iChildStart As Long, _
+                         ByVal cChildren As Long, _
+                               rgvarChildren As Variant, _
+                               pcObtained As Long) _
+                    As Long
+
+    Private Declare Function GetRoleText _
+                    Lib "oleacc.dll" _
+                    Alias "GetRoleTextA" _
+                        (ByVal dwRole As Long, _
+                               lpszRole As Any, _
+                         ByVal cchRoleMax As Long) _
+                    As Long
+
+    Public Type ChildList
+        Objects()       As IAccessible
+        Levels()        As Long
+        SelectedIndex   As Long
+    End Type
+
+    Public Function GetAccessible _
+                        (Element As IAccessible, _
+                         RoleWanted As RoleNumber, _
+                         NameWanted As String, _
+                         Optional GetClient As Boolean) _
+                    As IAccessible
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' This procedure recursively searches the accessibility hierarchy, starting '
+        ' with the element given, for an object matching the given name and role.   '
+        ' If requested, the Client object, assumed to be the first child, will be   '
+        ' returned instead of its parent.                                           '
+        '                                                                           '
+        ' Called by: RibbonForm procedures to get parent objects as required        '
+        '            Itself, recursively, to move down the hierarchy                '
+        ' Calls: GetChildren to, well, get children.                                '
+        '        Itself, recursively, to move down the hierarchy                    '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        Dim ChildrenArray()
+        Dim Child               As IAccessible
+        Dim ndxChild            As Long
+        Dim ReturnElement       As IAccessible
+
+        Dim NameComparand       As String
+        Dim accName             As String
+        Dim accValue            As String
+
+        On Error Resume Next
+            accValue = Element.accValue(CHILDID_SELF)
+        On Error GoTo 0
+
+        accName = Element.accName(CHILDID_SELF)
+
+        Select Case accValue
+
+            Case "Ribbon", "Quick Access Toolbar", "Ribbon Tabs List", "Lower Ribbon", "Status Bar"
+                ' In these cases accValue will exist (and not be localised)
+                NameComparand = accValue
+
+            Case "", "Ribbon Tab", "Group"
+                ' In these cases accValue will exist (and not be localised) but is not wanted
+                NameComparand = accName
+
+            Case Else
+                ' In other cases accValue will not exist
+                NameComparand = accName
+
+        End Select
+
+        If Element.accRole(CHILDID_SELF) = RoleWanted _
+        And NameComparand = NameWanted Then
+    '    And Element.accName(CHILDID_SELF) = NameWanted Then
+
+            Set ReturnElement = Element
+
+        Else ' not found yet
+
+            ChildrenArray = GetChildren(Element)
+
+            If (Not ChildrenArray) <> True Then
+
+                For ndxChild = LBound(ChildrenArray) To UBound(ChildrenArray)
+
+                    If TypeOf ChildrenArray(ndxChild) Is IAccessible Then
+
+                        Set Child = ChildrenArray(ndxChild)
+                        Set ReturnElement = GetAccessible(Child, _
+                                                          RoleWanted, _
+                                                          NameWanted)
+                        If Not ReturnElement Is Nothing Then Exit For
+
+                    End If ' Child is IAccessible
+
+                Next ndxChild
+
+            End If ' there are children
+
+        End If ' still looking
+
+        If GetClient Then
+            Set ReturnElement = ReturnElement.accNavigate(NAVDIR_FIRSTCHILD, _
+                                                          CHILDID_SELF)
+        End If
+
+        Set GetAccessible = ReturnElement
+
+    End Function
+
+
+    Public Function GetListOfChildren _
+                        (Parent As IAccessible, _
+                         Optional GetDescendents As Boolean = True) _
+                    As ChildList
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' Given a parent IAccessible object, will return a (UDT ChildList) array of '
+        ' its children. Each returned object will be the bottom one of a leg in the '
+        ' Accessibility hierarchy, unless told not to look at children's children.  '
+        '                                                                           '
+        ' Called by: RibbonForm procedures to populate listboxes                    '
+        '            Itself, recursively, to get descendents                        '
+        ' Calls: AddChildToList to populate the return array                        '
+        '        Itself, recursively, to process descendents                        '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        Dim ChildInfo               As ChildList
+        Dim ndxChild                As Long
+        Dim Child                   As IAccessible
+
+        Dim LocalChildren()         As Variant
+        Dim LocalAncestry()         As IAccessible
+
+        Dim GrandChildInfo          As ChildList
+        Dim ndxGrandChild           As Long
+        Dim GrandChild              As IAccessible
+
+        LocalChildren = GetChildren(Parent)
+
+        If (Not LocalChildren) <> True Then
+
+            For ndxChild = LBound(LocalChildren) To UBound(LocalChildren)
+
+                Set Child = LocalChildren(ndxChild)
+
+                If Child.accRole(CHILDID_SELF) <> ROLE_SYSTEM_GRAPHIC _
+                And Child.accRole(CHILDID_SELF) <> ROLE_SYSTEM_STATICTEXT Then
+
+                    If ((Child.accState(CHILDID_SELF) _
+                        And (STATE_SYSTEM_UNAVAILABLE _
+                             Or STATE_SYSTEM_INVISIBLE)) = 0) Then
+
+                        If Child.accChildCount = 0 _
+                        Or GetDescendents = False Then
+
+                            AddChildToList Child, ChildInfo
+
+                        Else
+
+                            GrandChildInfo = GetListOfChildren(Child)
+
+                            If (Not GrandChildInfo.Objects) <> True Then
+
+                                For ndxGrandChild = LBound(GrandChildInfo.Objects) _
+                                                    To UBound(GrandChildInfo.Objects)
+
+                                    Set GrandChild _
+                                        = GrandChildInfo.Objects(ndxGrandChild)
+
+                                    AddChildToList GrandChild, ChildInfo
+                                    ChildInfo.Levels(UBound(ChildInfo.Objects)) _
+                                        = GrandChildInfo.Levels(ndxGrandChild) + 1
+
+                                Next ndxGrandChild
+
+                            End If ' Any grandchildren found?
+
+                        End If ' Check for grandchildren?
+
+                    End If ' Not unavailable
+
+                End If ' Not (graphic or text)
+
+            Next ndxChild
+
+        End If ' Any children?
+
+        GetListOfChildren = ChildInfo
+
+    End Function
+
+
+    Private Sub AddChildToList _
+                    (Child As IAccessible, _
+                     ChildInfo As ChildList)
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' Adds an array entry and fills it with the passed IAccessible object. If   '
+        ' the object is the currently selected one, the fact is recorded.           '
+        '                                                                           '
+        ' Called by: GetListOfChildren                                              '
+        ' Calls: Nothing                                                            '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        With ChildInfo
+
+            If (Not .Objects) = True Then
+                ReDim .Objects(0 To 0)
+                ReDim .Levels(LBound(.Objects) To UBound(.Objects))
+            Else
+                ReDim Preserve .Objects(LBound(.Objects) To UBound(.Objects) + 1)
+                ReDim Preserve .Levels(LBound(.Objects) To UBound(.Objects))
+            End If
+
+            Set .Objects(UBound(.Objects)) = Child
+
+            If ((Child.accState(CHILDID_SELF) And (STATE_SYSTEM_SELECTED)) _
+                                                 = STATE_SYSTEM_SELECTED) Then
+                .SelectedIndex = UBound(.Objects)
+            End If
+
+        End With ' ChildInfo
+
+    End Sub
+
+    Private Function GetChildren _
+                         (Element As IAccessible) _
+                     As Variant()
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' General purpose subroutine to get an array of children of an IAccessible  '
+        ' object. The returned array is Variant because the elements may be either  '
+        ' IAccessible objects or simple (Long) elements, and the caller must treat  '
+        ' them appropriately.                                                       '
+        '                                                                           '
+        ' Called by: GetAccessible when searching for an Accessible element         '
+        '            GetListOfChildren when retrieving a list of children           '
+        ' Calls: AccessibleChildren API                                             '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        Const FirstChild        As Long = 0&
+
+        Dim NumChildren         As Long
+        Dim NumReturned         As Long
+
+        Dim ChildrenArray()
+
+        NumChildren = Element.accChildCount
+
+        If NumChildren > 0 Then
+
+            ReDim ChildrenArray(NumChildren - 1)
+            AccessibleChildren Element, FirstChild, NumChildren, _
+                               ChildrenArray(0), NumReturned
+
+        End If
+
+        GetChildren = ChildrenArray
+
+    End Function
+
+    Public Function RoleText _
+                        (Role As RoleNumber) _
+                    As String
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' Just a wrapper for the GetRoleText API.                                   '
+        '                                                                           '
+        ' Called by: RibbonForm procedures wanting to display the text for          '
+        '            individual ribbon elements (buttons, etc.)                     '
+        ' Calls: GetRoleText API - once to get the length and once to get the text. '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        Dim RoleTemp        As String
+        Dim RoleTextLength  As Long
+        Dim RoleChar()      As Byte
+        Dim ndxRoleChar     As Long
+
+        RoleTextLength = GetRoleText(Role, ByVal 0, 0&)
+        ReDim RoleChar(0 To RoleTextLength)
+        GetRoleText Role, RoleChar(LBound(RoleChar)), RoleTextLength + 1
+
+        For ndxRoleChar = LBound(RoleChar) To UBound(RoleChar) - 1
+            RoleTemp = RoleTemp & Chr(RoleChar(ndxRoleChar))
+        Next ndxRoleChar
+
+        RoleText = RoleTemp
+
+    End Function
+
+'Module - Driver
+    Sub StrangeName()
+
+        ' This used to be called Main, but I found, when I had a QAT button for it,
+        ' that a procedure called Main in my Normal Template threw a compiler error
+
+        Dim frmRibbonInfo As RibbonInfo
+
+        Set frmRibbonInfo = New RibbonInfo
+
+        frmRibbonInfo.Show
+
+        Set frmRibbonInfo = Nothing
+
+    End Sub
+
+'Form - RibbonInfo
+
+
+
+    ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+    ' Demonstration of using VBA to access the Word 2007 Ribbon. This has developed '
+    ' from a simple proof of concept into, almost, a ribbon in a form. It uses the  '
+    ' Office IAccessibility methods to walk the Accessibility Objects associated    '
+    ' with the Ribbon and presents them in a userform.                              '
+    '                                                                               '
+    ' Although it has had a measure of testing, it does not have any error trapping '
+    ' and should be considered no more than a prototype. I have, however, made an   '
+    ' effort to make the code tidy and readable, and keep the lines short enough    '
+    ' to be visible in most people's code windows.                                  '
+    '                                                                               '
+    ' It is worth noting that the actions performed by the buttons tend to shift    '
+    ' the focus to the ribbon, so clicking a button sometimes appears to have no    '
+    ' effect, the actual effect being simply to bring the focus back to the form;   '
+    ' pressing a second time should invoke the button action.                       '
+    '                                                                               '
+    '                                                (c) Tony Jollans, August 2008. '
+    ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+    Option Explicit
+
+    Private Const NoControls        As String = "(no available controls)"
+    Private Const ExecuteControl    As String = "Execute selected Control"
+    Private Const NoExecuteControl  As String = "Text control: can't execute"
+
+    Private RibbonPropPage          As IAccessible
+    Private ActiveTabPropPage       As IAccessible
+
+    Private TabInfo                 As ChildList
+    Private GroupInfo               As ChildList
+    Private ItemInfo                As ChildList
+
+    Private Initialised             As Boolean
+
+    ' UserForm Procedures ===========================================================
+
+    Private Sub UserForm_Initialize()
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' Hunt down the Ribbon Property Page within the Ribbon Command Bar, then,   '
+        ' within that, go find the Page Tab List. From this, build a list of the    '
+        ' visible Tabs on the Ribbon, and extract some meaningful text to display.  '
+        '                                                                           '
+        ' Called by: Whatever code instantiates a copy of the UserForm              '
+        '            (code in the Driver module in this example)                    '
+        ' Calls: In Accessibility Module:                                           '
+        '            GetAccessible to locate desired (parent) Accessible objects.   '
+        '            GetListOfChildren to get the child objects of the found parent.'
+        '        In this module:                                                    '
+        '            NameAndRoleText to extract and translate details for display.  '
+        '            lstTabs_Change (implicitly - action suppressed in the routine).'
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        Dim PageTabListClient   As IAccessible
+        Dim NamesAndRoles()     As Variant
+
+        Initialised = False
+
+        Set RibbonPropPage = GetAccessible(CommandBars("Ribbon"), _
+                                           ROLE_SYSTEM_PROPERTYPAGE, _
+                                           "Ribbon")
+        Set PageTabListClient = GetAccessible(RibbonPropPage, _
+                                              ROLE_SYSTEM_PAGETABLIST, _
+                                              "Ribbon Tabs List", _
+                                              True)
+
+        TabInfo = GetListOfChildren(PageTabListClient)
+
+        NamesAndRoles = NameAndRoleText(TabInfo)
+
+        lblSelected.Caption = NamesAndRoles(0)(TabInfo.SelectedIndex)
+        lstTabs.List = NamesAndRoles(0)
+
+        lstTabs.ListIndex = TabInfo.SelectedIndex
+
+        btnProbeGroup.Enabled = False
+        btnExecuteControl.Enabled = False
+
+        Initialised = True
+
+    End Sub
+
+    ' Click Event Procedures for Tabs ===============================================
+
+    Private Sub lstTabs_Change()
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' Select the Ribbon Tab chosen from the displayed list. This has the same   '
+        ' effect as clicking on that Tab: it switches the display to it. Other      '
+        ' controls dependent on the selected tab are re-initialised.                '
+        '                                                                           '
+        ' Called by: (Event triggered by user action)                               '
+        '            (implicitly) UserForm_Initialize.                              '
+        ' Calls: (implicitly) lstGroups_Change and lstControls_Change               '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        Dim TabName         As String
+        Dim ndxChild        As Long
+        Dim RibbonTab       As IAccessible
+
+        Dim DefaultAction   As String
+
+        If Not Initialised Then Exit Sub
+
+        Set RibbonTab = TabInfo.Objects(lstTabs.ListIndex)
+
+        RibbonTab.accDoDefaultAction CHILDID_SELF
+
+        lblGroupsTab = ""
+        lstGroups.Clear
+        lblControlsGroup = ""
+        lstControls.Clear
+
+        btnProbeGroup.Enabled = False
+        btnExecuteControl.Enabled = False
+
+    End Sub
+
+    Private Sub lstTabs_DblClick _
+                    (ByVal Cancel As MSForms.ReturnBoolean)
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' Simply invokes the ProbeTab Button Click action (q.v.) so that double     '
+        ' clicking in the list performs the same action as clicking the button.     '
+        ' Note that double clicks don't register on unselected items so the Tab is  '
+        ' guaranteed selected when the double click action is performed.            '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        btnProbeTab_Click
+
+    End Sub
+
+    Private Sub btnProbeTab_Click()
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' Find the 'Lower Ribbon' Pane within the Ribbon Property Page, and then    '
+        ' the Property Page for the selected tab (which should be the only one).    '
+        ' Build a list of the Groups within the Tab and extract information to      '
+        ' display.                                                                  '
+        '                                                                           '
+        ' Called by: (Event code triggered by user pressing a button)               '
+        '            lstTabs_DblClick so that it performs the button press action.  '
+        ' Calls: In Accessibility Module:                                           '
+        '            GetAccessible to locate desired (parent) Accessible objects.   '
+        '            GetListOfChildren to get the child objects of the found parent.'
+        '        In this module:                                                    '
+        '            NameAndRoleText to extract and translate details for display.  '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        Dim RibbonPaneClient    As IAccessible
+        Dim NamesAndRoles()     As Variant
+
+        Set RibbonPaneClient = GetAccessible(RibbonPropPage, _
+                                             ROLE_SYSTEM_PANE, _
+                                             "Lower Ribbon", _
+                                             True)
+        Set ActiveTabPropPage = GetAccessible(RibbonPaneClient, _
+                                              ROLE_SYSTEM_PROPERTYPAGE, _
+                                              TabInfo.Objects(lstTabs.ListIndex) _
+                                                     .accName(CHILDID_SELF))
+
+        GroupInfo = GetListOfChildren(ActiveTabPropPage, GetDescendents:=False)
+
+        NamesAndRoles = NameAndRoleText(GroupInfo)
+
+        lblGroupsTab = lblSelected
+        lstGroups.List = NamesAndRoles(0)
+
+        btnProbeGroup.Enabled = False
+        btnExecuteControl.Enabled = False
+
+    End Sub
+
+    ' Button Click Event Procedures for Groups ======================================
+
+    Private Sub lstGroups_Change()
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' The only thing that needs doing when a Group is selected is to ensure     '
+        ' that the Group Select Button is activated.                                '
+        '                                                                           '
+        ' Called by: (Event triggered by user action)                               '
+        '            (implicitly on Clear, by lstTabs_Change)                       '
+        ' Calls: Nothing                                                            '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        btnProbeGroup.Enabled = True
+
+    End Sub
+
+    Private Sub lstGroups_DblClick _
+                    (ByVal Cancel As MSForms.ReturnBoolean)
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' Simply invokes the ProbeGroup Button Click action (q.v.) so that double   '
+        ' clicking in the list performs the same action as clicking the button.     '
+        ' Note that double clicks don't register on unselected items so the Group   '
+        ' is guaranteed selected when the double click action is performed.         '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        btnProbeGroup_Click
+
+    End Sub
+
+    Private Sub btnProbeGroup_Click()
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' Find the Toolbar object for the selected group within the Ribbon Tab's    '
+        ' Property Page, build a list of the available items within it. Check that  '
+        ' there are available items to display (and if not show a message to that   '
+        ' effect) and extract name and role details in display format. A very rough '
+        ' and ready length calculation is made and the width of the column in the   '
+        ' listbox set to force a horizontal scroll bar when appropriate.            '
+        '                                                                           '
+        ' Called by: (Event code triggered by user pressing a button)               '
+        '            lstGroups_DblClick so that it performs the button press action.'
+        ' Calls: In Accessibility Module:                                           '
+        '            GetAccessible to locate desired (parent) Accessible objects.   '
+        '            GetListOfChildren to get the child objects of the found parent.'
+        '        In this module:                                                    '
+        '            NameAndRoleText to extract and translate details for display.  '
+        '            lstControls_Change (implicitly on Clear)                       '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        Dim GroupToolBar        As IAccessible
+        Dim NamesAndRoles()     As Variant
+        Dim ndx                 As Long
+
+        Dim TextLen             As Long
+        Dim Maxlen              As Long
+
+        lblControlsGroup = lstGroups.Value
+        lstControls.Clear
+        lstControls.ColumnWidths = ""
+
+        btnExecuteControl.Enabled = False
+
+        Set GroupToolBar = GetAccessible(ActiveTabPropPage, _
+                                         ROLE_SYSTEM_TOOLBAR, _
+                                         GroupInfo.Objects(lstGroups.ListIndex) _
+                                                  .accName(CHILDID_SELF))
+
+        ItemInfo = GetListOfChildren(GroupToolBar)
+
+        If (Not ItemInfo.Objects) = True Then
+            lstControls.AddItem NoControls
+            Exit Sub
+        End If
+
+        NamesAndRoles = NameAndRoleText(ItemInfo, _
+                                        IncludeRoleText:=True)
+
+        For ndx = LBound(NamesAndRoles(0)) To UBound(NamesAndRoles(0))
+            lstControls.AddItem NamesAndRoles(0)(ndx) & _
+                                " (" & NamesAndRoles(1)(ndx) & ")"
+            TextLen = Len(lstControls.List(lstControls.ListCount - 1))
+            If TextLen > Maxlen Then Maxlen = TextLen
+        Next
+
+        If Maxlen > 35 Then lstControls.ColumnWidths = Maxlen * 4 + 10
+
+    End Sub
+
+    ' Button Click Event Procedures for Controls =======================================================
+
+    Private Sub lstControls_Change()
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' When a control is selected from list, it may not be executable, it may be '
+        ' text or a message. If so the execute button is greyed out and its caption '
+        ' changed; otherwise it is enabled and its usual caption is displayed.      '
+        '                                                                           '
+        ' Called by: (Event triggered by user action)                               '
+        '            (implicitly on Clear, by lstTabs_Change)                       '
+        ' Calls: Nothing                                                            '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        btnExecuteControl.Caption = ExecuteControl
+        btnExecuteControl.Enabled = True
+
+        If Not IsNull(lstControls.Value) Then
+
+            If lstControls.Value = NoControls Then
+
+                btnExecuteControl.Enabled = False
+
+            Else
+
+                If ItemInfo.Objects(lstControls.ListIndex) _
+                        .accRole(CHILDID_SELF) = ROLE_SYSTEM_Text Then
+
+                    btnExecuteControl.Caption = NoExecuteControl
+                    btnExecuteControl.Enabled = False
+
+                End If
+
+            End If
+
+        End If
+
+    End Sub
+
+    Private Sub lstControls_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' Simply invokes the ExecuteControl Button Click action (q.v.) so that      '
+        ' double clicking in the list performs the same action as clicking the      '
+        ' button. Note that double clicks don't register on unselected items so the '
+        ' Control is guaranteed selected when the double click action is performed. '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        btnExecuteControl_Click
+
+    End Sub
+
+    Private Sub btnExecuteControl_Click()
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' If the selected ribbon item is executable, that is it is a button that    '
+        ' either triggers a direct action or a dropdown of some sort, its default   '
+        ' action is executed.                                                       '
+        '                                                                           '
+        ' I have not found a way to interact with text controls; MSAA does not      '
+        ' support the selection of editable text because the string is exposed in   '
+        ' the Value property; unfortunately the setValue method does not seem to be '
+        ' available to VBA.                                                         '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        ItemInfo.Objects(lstControls.ListIndex).accDoDefaultAction CHILDID_SELF
+
+    End Sub
+
+    ' Button Click Event Procedures for UserForm ====================================
+
+    Private Sub btnClose_Click()
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' Excessively cautious tidy up before quitting.                             '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        Set RibbonPropPage = Nothing
+        Set ActiveTabPropPage = Nothing
+
+        Erase TabInfo.Objects, GroupInfo.Objects, ItemInfo.Objects
+
+        Unload Me
+
+    End Sub
+
+    ' Common Procedures =============================================================
+
+    Private Function NameAndRoleText _
+                         (Info As ChildList, _
+                          Optional IncludeRoleText As Boolean = False) _
+                     As Variant()
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' Builds compound object names and role texts from an IAccessible object    '
+        ' and its ancestors up to the appropriate level, as previously determined.  '
+        ' The ancestors have not been stored, so are collected here into a simple   '
+        ' array before building up the strings.                                     '
+        '                                                                           '
+        ' Called by: Procedures populating listboxes.                               '
+        ' Calls: AppendToString to append text, if non-duplicate, and a separator,  '
+        '                       if necessary, to a name or role string.             '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        Dim ReturnArray(0 To 1)
+
+        Dim NamesArray()    As String
+        Dim RolesArray()    As String
+
+        ReDim NamesArray(LBound(Info.Objects) To UBound(Info.Objects))
+
+        If IncludeRoleText Then
+            ReDim RolesArray(LBound(Info.Objects) To UBound(Info.Objects))
+        End If
+
+        Dim Ancestry()      As IAccessible
+        Dim AncestralName   As String
+        Dim ndxObject       As Long
+        Dim ndxAncestry     As Long
+
+        For ndxObject = LBound(Info.Objects) To UBound(Info.Objects)
+
+            ReDim Ancestry(0 To Info.Levels(ndxObject))
+
+            Set Ancestry(LBound(Ancestry)) = Info.Objects(ndxObject)
+            For ndxAncestry = LBound(Ancestry) + 1 To UBound(Ancestry)
+                Set Ancestry(ndxAncestry) = Ancestry(ndxAncestry - 1).accParent
+            Next ndxAncestry
+
+            For ndxAncestry = UBound(Ancestry) To LBound(Ancestry) Step -1
+
+                AncestralName = ""
+                If ndxAncestry < UBound(Ancestry) Then
+                    AncestralName = Ancestry(ndxAncestry + 1).accName(CHILDID_SELF)
+                End If
+
+                If Ancestry(ndxAncestry).accName(CHILDID_SELF) _
+                        <> AncestralName Then
+
+                    AppendToString NamesArray(ndxObject), _
+                                   Ancestry(ndxAncestry).accName(CHILDID_SELF)
+
+                End If
+
+                If IncludeRoleText Then
+                    If Ancestry(ndxAncestry).accRole(CHILDID_SELF) _
+                            <> ROLE_SYSTEM_GROUPING Then
+
+                        AppendToString RolesArray(ndxObject), _
+                                       RoleText(Ancestry(ndxAncestry) _
+                                                .accRole(CHILDID_SELF))
+
+                    End If
+                End If
+
+            Next ndxAncestry
+
+        Next ndxObject
+
+        NameAndRoleText = Array(NamesArray(), RolesArray())
+
+    End Function
+
+    Private Sub AppendToString(NameOrRole As String, Appendix As String)
+
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+        ' Called from NameAndRoleText (q.v., above) to append appropriate text to a '
+        ' name or role string.                                                      '
+        ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+
+        Const TextSeparator As String = " - "
+
+        If NameOrRole <> "" Then
+            If Right(NameOrRole, Len(TextSeparator)) <> TextSeparator Then
+
+                NameOrRole = NameOrRole & TextSeparator
+
+            End If
+        End If
+
+        NameOrRole = NameOrRole & Appendix
+
+    End Sub
