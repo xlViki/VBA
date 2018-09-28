@@ -1,0 +1,34 @@
+1. '// OpenFile Dialogue
+
+    Public Function Open_File()
+    Dim objFileDialog As Office.FileDialog
+    Dim objFileDialogFilters As Office.FileDialogFilters
+    Dim sFileName As String
+
+       Set objFileDialog = Application.FileDialog(MsoFileDialogType.msoFileDialogOpen)
+       With objFileDialog
+
+          'define a Filters object
+          Set objFileDialogFilters = .Filters
+          With objFileDialogFilters
+             .Clear ' clear default filters
+             .Add "Excel Files", "*.xls"
+          End With
+
+          .AllowMultiSelect = False
+
+          'show the dialog and exit if Cancel is pressed
+          If .Show = False Then
+             Exit Function
+          End If
+
+          'display the file name that was selected
+          Open_File = .SelectedItems(1)
+
+       End With
+    End Function
+
+    Sub test()
+    Set wb = Workbooks.Open(Open_File)
+
+    End Sub
