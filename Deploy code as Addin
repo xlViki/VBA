@@ -1,0 +1,100 @@
+1. '// Deploy as addin
+
+    Option Explicit
+
+    Const ADDIN_NAME = "PivotTool7.2.xlam"
+    Const ADDIN_PATH = "\\xyz\pivottool\"
+
+    Function Test_InitializeTools()
+    Test_InitializeTools = DeliverAddin(ADDIN_NAME, ADDIN_PATH)
+    End Function
+
+    Function DeliverAddin(strAddinName As String, strAddinPath As String) As Variant
+        Dim LPReportTool As Workbook
+        Dim lastError As Single
+
+        On Error Resume Next    ' turn off error checking
+        'make sure addin exists
+
+        If Len(Dir(strAddinPath & strAddinName)) = 0 Then
+            MsgBox ("The addin: " & strAddinPath & strAddinName & " has been moved, renamed or you do not have access to the directory where it resides.")
+            DeliverAddin = False
+            Exit Function
+        End If
+
+
+        If ReturnAddinIndex(strAddinName) = 0 Then
+            AddIns.Add(strAddinPath & strAddinName, False).Installed = True
+        End If
+        'get a handle
+
+        Set DeliverAddin = Workbooks(AddIns(ReturnAddinIndex(strAddinName)).Name)
+        lastError = Err
+        On Error GoTo 0        ' restore error checking
+
+        If lastError <> 0 Then
+            ' the add-in workbook isn't currently open. Manually open it.
+            Set DeliverAddin = Workbooks.Open(AddIns(ReturnAddinIndex(strAddinName)).FullName)
+        End If
+
+        If IsEmpty(DeliverAddin) Then
+            DeliverAddin = False
+        Else
+            DeliverAddin = True
+        End If
+
+    End Function
+
+    Public Function ReturnAddinIndex(strAddinName As String) As Integer
+        Dim X As AddIn
+        Dim i As Integer
+        Dim rtn As Integer
+
+        rtn = 0
+
+        For Each X In AddIns
+            i = i + 1
+            If X.Name = strAddinName Then
+                rtn = i
+                Exit For
+            End If
+        Next X
+
+        Set X = Nothing
+
+        ReturnAddinIndex = rtn
+    End Function
+
+    '************************************************************************************
+    Sub cmdCreateBatch_Click()
+        On Error GoTo Error_Handler
+
+        If Test_InitializeTools Then
+            Application.Run ADDIN_NAME & "!MakeReport", False
+        Else
+            Call MsgBox("I could not initialize the Add-In: " & ADDIN_NAME, vbCritical)
+        End If
+
+        Exit Sub
+
+    Error_Handler:
+        Call MsgBox("I could not initialize the Add-In: " & ADDIN_NAME, vbCritical)
+        Exit Sub
+    End Sub
+
+    Private Sub cmdPrintCurrent_Click()
+        On Error GoTo Error_Handler
+
+        If Test_InitializeTools Then
+            Application.Run ADDIN_NAME & "!PrintCurrent"
+        Else
+            Call MsgBox("I could not initialize the Add-In: " & ADDIN_NAME, vbCritical)
+        End If
+
+        Exit Sub
+
+    Error_Handler:
+        Call MsgBox("I could not initialize the Add-In: " & ADDIN_NAME, vbCritical)
+        Exit Sub
+    End Sub
+
