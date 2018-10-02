@@ -617,3 +617,22 @@
     MyErrorHandler:
         MsgBox "GetExcelObjectFromHwnd" & vbCrLf & vbCrLf & "Err = " & Err.Number & vbCrLf & "Description: " & Err.Description
     End Function
+    
+    
+23. '//Delete range names with #REF! errors
+    Public Sub CleanNames()
+        Dim count As Long
+        Dim i As Long
+
+        With ActiveWorkbook
+            count = .Names.count
+
+            For i = 1 To count - 1
+                If InStr(.Names(i).RefersTo, "=#REF") > 0 Then
+                    Debug.Print .Names(i).Name
+                    .Names(i).Delete
+                End If
+            Next
+        End With
+
+    End Sub
