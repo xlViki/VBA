@@ -1,0 +1,257 @@
+1. //Chip Pearson's code to sort dictionaries
+
+    This procedure sorts a Dictionary object, either by Key value or Item value. If SortByKey is True, then the Dictionary is sorted by the values of the Keys of Items in dictionary. In this case, the Dictionary may contain any type of data other than User Defined Types. It may include Object type variables. If SortByKey is False, the Dictionary is sorted by the value of the items in the Dictionary. In this case, the Dictionary may include only simple variable types. It may not contain objects, arrays, or User Define Types.  By default, the sort is in ascending order. Set the Descending parameter to True to sort in descending order. By default, text comparison are case-insensitive ("A" = "a"). To sort in case-sensitive mode ("A" <> "a"), set the CompareMode parameter to vbBinaryCompare. The code for SortDictionary is shown below:
+
+    Public Sub SortDictionary(Dict As Scripting.Dictionary, _
+        SortByKey As Boolean, _
+        Optional Descending As Boolean = False, _
+        Optional CompareMode As VbCompareMethod = vbTextCompare)
+    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    ' SortDictionary
+    ' This sorts a Dictionary object. If SortByKey is False, the
+    ' the sort is done based on the Items of the Dictionary, and
+    ' these items must be simple data types. They may not be
+    ' Object, Arrays, or User-Defined Types. If SortByKey is True,
+    ' the Dictionary is sorted by Key value, and the Items in the
+    ' Dictionary may be Object as well as simple variables.
+    '
+    ' If sort by key is True, all element of the Dictionary
+    ' must have a non-blank Key value. If Key is vbNullString
+    ' the procedure will terminate.
+    '
+    ' By defualt, sorting is done in Ascending order. You can
+    ' sort by Descending order by setting the Descending parameter
+    ' to True.
+    '
+    ' By default, text comparisons are done case-INSENSITIVE (e.g.,
+    ' "a" = "A"). To use case-SENSITIVE comparisons (e.g., "a" <> "A")
+    ' set CompareMode to vbBinaryCompare.
+    '
+    ' Note: This procedure requires the
+    ' QSortInPlace function, which is described and available for
+    ' download at www.cpearson.com/excel/qsort.htm .
+    '
+    ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+    Dim Ndx As Long
+    Dim KeyValue As String
+    Dim ItemValue As Variant
+    Dim Arr() As Variant
+    Dim KeyArr() As String
+    Dim VTypes() As VbVarType
+
+
+    Dim V As Variant
+    Dim SplitArr As Variant
+
+    Dim TempDict As Scripting.Dictionary
+    '''''''''''''''''''''''''''''
+    ' Ensure Dict is not Nothing.
+    '''''''''''''''''''''''''''''
+    If Dict Is Nothing Then
+        Exit Sub
+    End If
+    ''''''''''''''''''''''''''''
+    ' If the number of elements
+    ' in Dict is 0 or 1, no
+    ' sorting is required.
+    ''''''''''''''''''''''''''''
+    If (Dict.Count = 0) Or (Dict.Count = 1) Then
+        Exit Sub
+    End If
+
+    ''''''''''''''''''''''''''''
+    ' Create a new TempDict.
+    ''''''''''''''''''''''''''''
+    Set TempDict = New Scripting.Dictionary
+
+    If SortByKey = True Then
+        ''''''''''''''''''''''''''''''''''''''''
+        ' We're sorting by key. Redim the Arr
+        ' to the number of elements in the
+        ' Dict object, and load that array
+        ' with the key names.
+        ''''''''''''''''''''''''''''''''''''''''
+        ReDim Arr(0 To Dict.Count - 1)
+
+        For Ndx = 0 To Dict.Count - 1
+            Arr(Ndx) = Dict.Keys(Ndx)
+        Next Ndx
+
+        ''''''''''''''''''''''''''''''''''''''
+        ' Sort the key names.
+        ''''''''''''''''''''''''''''''''''''''
+        QSortInPlace InputArray:=Arr, LB:=-1, UB:=-1, Descending:=Descending, CompareMode:=CompareMode
+        ''''''''''''''''''''''''''''''''''''''''''''
+        ' Load TempDict. The key value come from
+        ' our sorted array of keys Arr, and the
+        ' Item comes from the original Dict object.
+        ''''''''''''''''''''''''''''''''''''''''''''
+        For Ndx = 0 To Dict.Count - 1
+            KeyValue = Arr(Ndx)
+            TempDict.Add Key:=KeyValue, Item:=Dict.Item(KeyValue)
+        Next Ndx
+        '''''''''''''''''''''''''''''''''
+        ' Set the passed in Dict object
+        ' to our TempDict object.
+        '''''''''''''''''''''''''''''''''
+        Set Dict = TempDict
+        ''''''''''''''''''''''''''''''''
+        ' This is the end of processing.
+        ''''''''''''''''''''''''''''''''
+    Else
+        '''''''''''''''''''''''''''''''''''''''''''''''
+        ' Here, we're sorting by items. The Items must
+        ' be simple data types. They may NOT be Objects,
+        ' arrays, or UserDefineTypes.
+        ' First, ReDim Arr and VTypes to the number
+        ' of elements in the Dict object. Arr will
+        ' hold a string containing
+        '   Item & vbNullChar & Key
+        ' This keeps the association between the
+        ' item and its key.
+        '''''''''''''''''''''''''''''''''''''''''''''''
+        ReDim Arr(0 To Dict.Count - 1)
+        ReDim VTypes(0 To Dict.Count - 1)
+
+        For Ndx = 0 To Dict.Count - 1
+            If (IsObject(Dict.Items(Ndx)) = True) Or _
+                (IsArray(Dict.Items(Ndx)) = True) Or _
+                VarType(Dict.Items(Ndx)) = vbUserDefinedType Then
+                Debug.Print "***** ITEM IN DICTIONARY WAS OBJECT OR ARRAY OR UDT"
+                Exit Sub
+            End If
+            ''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+            ' Here, we create a string containing
+            '       Item & vbNullChar & Key
+            ' This preserves the associate between an item and its
+            ' key. Store the VarType of the Item in the VTypes
+            ' array. We'll use these values later to convert
+            ' back to the proper data type for Item.
+            ''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+                Arr(Ndx) = Dict.Items(Ndx) & vbNullChar & Dict.Keys(Ndx)
+                VTypes(Ndx) = VarType(Dict.Items(Ndx))
+
+        Next Ndx
+        ''''''''''''''''''''''''''''''''''
+        ' Sort the array that contains the
+        ' items of the Dictionary along
+        ' with their associated keys
+        ''''''''''''''''''''''''''''''''''
+        QSortInPlace InputArray:=Arr, LB:=-1, UB:=-1, Descending:=Descending, CompareMode:=vbTextCompare
+
+        For Ndx = LBound(Arr) To UBound(Arr)
+            '''''''''''''''''''''''''''''''''''''
+            ' Loop trhogh the array of sorted
+            ' Items, Split based on vbNullChar
+            ' to get the Key from the element
+            ' of the array Arr.
+            SplitArr = Split(Arr(Ndx), vbNullChar)
+            ''''''''''''''''''''''''''''''''''''''''''
+            ' It may have been possible that item in
+            ' the dictionary contains a vbNullChar.
+            ' Therefore, use UBound to get the
+            ' key value, which will necessarily
+            ' be the last item of SplitArr.
+            ' Then Redim Preserve SplitArr
+            ' to UBound - 1 to get rid of the
+            ' Key element, and use Join
+            ' to reassemble to original value
+            ' of the Item.
+            '''''''''''''''''''''''''''''''''''''''''
+            KeyValue = SplitArr(UBound(SplitArr))
+            ReDim Preserve SplitArr(LBound(SplitArr) To UBound(SplitArr) - 1)
+            ItemValue = Join(SplitArr, vbNullChar)
+            '''''''''''''''''''''''''''''''''''''''
+            ' Join will set ItemValue to a string
+            ' regardless of what the original
+            ' data type was. Test the VTypes(Ndx)
+            ' value to convert ItemValue back to
+            ' the proper data type.
+            '''''''''''''''''''''''''''''''''''''''
+            Select Case VTypes(Ndx)
+                Case vbBoolean
+                    ItemValue = CBool(ItemValue)
+                Case vbByte
+                    ItemValue = CByte(ItemValue)
+                Case vbCurrency
+                    ItemValue = CCur(ItemValue)
+                Case vbDate
+                    ItemValue = CDate(ItemValue)
+                Case vbDecimal
+                    ItemValue = CDec(ItemValue)
+                Case vbDouble
+                    ItemValue = CDbl(ItemValue)
+                Case vbInteger
+                    ItemValue = CInt(ItemValue)
+                Case vbLong
+                    ItemValue = CLng(ItemValue)
+                Case vbSingle
+                    ItemValue = CSng(ItemValue)
+                Case vbString
+                    ItemValue = CStr(ItemValue)
+                Case Else
+                    ItemValue = ItemValue
+            End Select
+            ''''''''''''''''''''''''''''''''''''''
+            ' Finally, add the Item and Key to
+            ' our TempDict dictionary.
+
+            TempDict.Add Key:=KeyValue, Item:=ItemValue
+        Next Ndx
+    End If
+
+
+    '''''''''''''''''''''''''''''''''
+    ' Set the passed in Dict object
+    ' to our TempDict object.
+    '''''''''''''''''''''''''''''''''
+    Set Dict = TempDict
+    End Sub
+    
+2. '// Simple code to Sort Ascending and Descending on keys only
+
+    Public Function SortDictByKeyAscending(dctList As Object) As Object
+        Set SortDictByKeyAscending = SortKeysByLengthDesc(dctList)
+    End Function
+
+    Public Function SortKeysByLengthDesc(dctList As Object) As Object
+
+        Dim arrTemp() As Variant
+            Dim curKey As Variant
+        Dim itX As Integer
+        Dim itY As Integer
+
+        'Only sort if more than one item in the dict
+        If dctList.count > 1 Then
+
+            'Populate the array
+            ReDim arrTemp(dctList.count)
+            itX = 0
+            For Each curKey In dctList
+                arrTemp(itX) = curKey
+                itX = itX + 1
+            Next
+
+            'Do the sort in the array
+            For itX = 0 To (dctList.count - 2)
+                For itY = (itX + 1) To (dctList.count - 1)
+                    If arrTemp(itX) > arrTemp(itY) Then
+                        curKey = arrTemp(itY)
+                        arrTemp(itY) = arrTemp(itX)
+                        arrTemp(itX) = curKey
+                    End If
+                Next
+            Next
+
+            'Create the new dictionary
+            Set d = CreateObject("Scripting.Dictionary")
+            For itX = 0 To (dctList.count - 1)
+                d(arrTemp(itX)) = dctList(arrTemp(itX))
+            Next
+            Set SortKeysByLengthDesc = d
+        Else
+            Set SortKeysByLengthDesc = dctList
+        End If
+    End Function
+
