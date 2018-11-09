@@ -104,11 +104,13 @@
 
   9. '//List all files in a folder
       Sub ListFiles()
-         Set obbj as createobject("scripting . filesystem")
-         Set obbjfolder as obbj.getfolder(strpath)
+         Set obbj = createobject("scripting . filesystemobject")
+         Set obbjfolder = obbj.getfolder(strpath)
          I=1
          For each obj in obbjfolder.files
+         if (obj.attributes and 2 ) <> 2 then ' to ignore hidden files
          Cells(I+1,1).obj.name
+         end if
          Next obj
       End Sub
          
