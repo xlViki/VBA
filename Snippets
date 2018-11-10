@@ -658,3 +658,55 @@
             End If
         End If
     End Function
+
+
+25. '//Check if array is empty
+
+    'Only for Strings
+    Sub Sample()
+        Dim Ar As Variant
+        Dim strTest As String
+
+        strg = "Blah"
+        Ar = Split(strg, "|")
+        Debug.Print "TEST1 : "; IsArrayEmpty(Ar)
+
+        strg = "Blah|Blah"
+        Ar = Split(strg, "|")
+        Debug.Print "TEST2 : "; IsArrayEmpty(Ar)
+
+    End Sub
+
+    Function IsArrayEmpty(Ar As Variant) As Boolean
+        If InStr(TypeName(Ar), "(") > 0 Then
+            If Not IsEmpty(Ar) Then
+                If UBound(Ar) > 0 Then
+                    IsArrayEmpty = False
+                Else
+                    IsArrayEmpty = True
+                End If
+            End If
+        End If
+    End Function
+
+    '//For All cases
+    Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" _
+    (pDst As Any, pSrc As Any, ByVal ByteLen As Long)
+
+    Sub Sample()
+        Dim Ar() As Long
+
+        Debug.Print ArrayNotEmpty(Ar) '<~~ False
+
+        ReDim Ar(1)
+
+        Debug.Print ArrayNotEmpty(Ar) '<~~ True
+    End Sub
+
+    Public Function ArrayNotEmpty(Ar) As Boolean
+        Dim Ret As Long
+
+        CopyMemory Ret, ByVal VarPtr(Ar) + 8, ByVal 4
+        CopyMemory Ret, ByVal Ret, ByVal 4
+        ArrayNotEmpty = (Ret <> 0)
+    End Function
