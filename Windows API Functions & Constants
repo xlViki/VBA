@@ -60,3 +60,22 @@
       End If 
          CopyOpenFile = Results 
     End Function 
+
+5. '//Find the path to ADOBE
+
+    Private Declare Function FindExecutable Lib "shell32.dll" Alias "FindExecutableA" _
+        (ByVal lpFile As String, _
+         ByVal lpDirectory As String, _
+         ByVal lpResult As String) As Long
+    
+    'and call this to find the applicable program name
+    Public Function GetFileAssociation(ByVal sFilepath As String) As String
+    Dim i               As Long
+    Dim E               As String
+        GetFileAssociation = "File not found!"
+        If Dir(sFilepath) = vbNullString Or sFilepath = vbNullString Then Exit Function
+        GetFileAssociation = "No association found!"
+        E = String(260, Chr(0))
+        i = FindExecutable(sFilepath, vbNullString, E)
+        If i > 32 Then GetFileAssociation = Left(E, InStr(E, Chr(0)) - 1)
+    End Function
