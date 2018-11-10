@@ -638,3 +638,23 @@
         End With
 
     End Sub
+
+24. '// Check if Workbooks is readOnly
+
+    Function IsWorkBookOpen(ByVal FileName As String) As Boolean
+        Dim TargetWorkbook As Workbook
+
+        Dim IteratorWorkbook As Workbook
+        For Each IteratorWorkbook In Application.Workbooks
+            If IteratorWorkbook.FullName = FileName Then 
+                Set TargetWorkbook = IteratorWorkbook
+            End If
+        Next
+
+        If Not TargetWorkbook Is Nothing Then
+            If TargetWorkbook.ReadOnly Then
+                IsWorkBookOpen = True
+                Exit Function
+            End If
+        End If
+    End Function
