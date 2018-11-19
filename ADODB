@@ -329,3 +329,24 @@ End Sub
     MsgBox mySheetname & " does NOT exist in the subject workbook.", 64, "Do not proceed"
     End If
     End Sub
+
+8 '//Get Sheet names from closed workbook
+
+        Sub GetSheetNames()
+
+        Dim cn As ADODB.Connection
+        Dim cat As ADOX.Catalog
+        Dim t As ADOX.Table
+
+        Set cn = New ADODB.Connection
+        cn.Open "Provider=MSDASQL.1;Data Source=Excel Files;" _
+        & "Initial Catalog=D:\NixDocuments\ExcelFiles\Andy.xls" &#039;change path name here
+        Set cat = New ADOX.Catalog
+        Set cat.ActiveConnection = cn
+        For Each t In cat.Tables
+        Debug.Print t.Name
+        Next t
+        Set cat = Nothing
+        cn.Close
+        Set cn = Nothing
+        End Sub
