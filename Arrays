@@ -1,4 +1,25 @@
-1. '//Create and pass an Array
+1. '//Declaring as String vs Variant
+
+    Sub Example()
+        Dim ArrayOne() As String
+        Dim ArrayTwo() As String
+        Dim ArrayThree As Variant
+        Dim i As Long
+
+        ReDim ArrayOne(1 To Sheets.Count)
+        ReDim ArrayTwo(1 To 2)
+
+        For i = 1 To Sheets.Count
+            ArrayOne(i) = Sheets(i).Name
+        Next
+
+        ArrayTwo(1) = "Sheet1"
+        ArrayTwo(2) = "Sheet2"
+
+        ArrayThree = Array("Sheet1", "Sheet3")
+    End Sub
+
+2. '//Create and pass an Array
     Sub SubRoutine()
       ProcessArray CreateArray
     End Sub
@@ -11,12 +32,12 @@
       CreateArray = Array1
     End Function
 
-2. '// Check string within an Array
+3. '// Check string within an Array
     Function IsInArray(stringToBeFound As String, arr As Variant) As Boolean
       IsInArray = (UBound(Filter(arr, stringToBeFound)) > -1)
     End Function
  
-3. '//ArrayList Objects
+4. '//ArrayList Objects
     Sub f()
 
     Dim myArrayList As Object
@@ -47,3 +68,4 @@
     Function ArrayList()
         Set ArrayList = CreateObject("System.Collections.ArrayList")
     End Function
+
