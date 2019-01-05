@@ -193,7 +193,7 @@
       End If
     End Sub
 
-3.'// Break VBA sheet passwords
+5.'// Break VBA sheet passwords
 Sub WorksheetPasswordBreaker()
 
 'Breaks worksheet password protection.
@@ -220,7 +220,7 @@ Next: Next: Next: Next: Next: Next
 Next: Next: Next: Next: Next: Next
 End Sub
 
-4. Break Workbook Passwords:
+6. Break Workbook Passwords:
 
   Sub WorkbookPasswordBreaker()
       'Breaks worksheet password protection.
@@ -248,7 +248,7 @@ End Sub
 
 
 
-5. '//List Macro shortcuts assigned using the Macro Dialog box
+7. '//List Macro shortcuts assigned using the Macro Dialog box
 
   Option Explicit
   'MUST set to Trust Access to the VBA Project Object Model
@@ -295,4 +295,13 @@ End Sub
               End If
       End Select
   Next VBComp
+  End Sub
+
+8. '// Optimize VBA codes by changing Application settings
+
+  Sub OptimizeVBA(isOn As Boolean)
+      Application.Calculation = IIf(isOn, xlCalculationManual, xlCalculationAutomatic)
+      Application.EnableEvents = Not (isOn)
+      Application.ScreenUpdating = Not (isOn)
+      ActiveSheet.DisplayPageBreaks = Not (isOn)
   End Sub
