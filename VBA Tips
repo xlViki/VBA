@@ -305,3 +305,6 @@ End Sub
       Application.ScreenUpdating = Not (isOn)
       ActiveSheet.DisplayPageBreaks = Not (isOn)
   End Sub
+
+9. '// Update Listbox directly from Dictionary
+  ListBox5.List = Application.Transpose(Array(dic.Keys, dic.Items))
