@@ -1,0 +1,138 @@
+1'//Grab Ancestor value from Relational Data
+https://stackoverflow.com/questions/45741078/excel-vba-grab-ancestor-value-from-relational-data
+
+Option Explicit
+
+Public Sub LineageDemo()
+    
+    Dim dict As Object
+    Dim inputValues As Variant
+    Dim outputValues As Variant
+    Dim i As Long
+    
+    'Read relations into dictionary
+    Set dict = BuildDictionaryOfRelations(Range("A2:A15"), Range("B2:B15"))
+    
+    'Read input values into variant array
+    inputValues = Range("E2:E15").Value
+    
+    'Write output
+    ReDim outputValues(1 To UBound(inputValues), 1 To 1)
+    For i = 1 To UBound(inputValues)
+        outputValues(i, 1) = TraceAncestor(CStr(inputValues(i, 1)), dict, "Root")
+    Next i
+    
+    Range("F2:F15").Value = outputValues
+    
+End Sub
+
+Private Function BuildDictionaryOfRelations(childRange As Range, parentRange As Range) As Object
+
+    Dim childValues As Variant
+    Dim parentValues As Variant
+    Dim i As Long
+    Dim aChild As String
+    Dim aParent As String
+    Dim dict As Object
+    
+    If childRange.Columns.Count <> 1 Or parentRange.Columns.Count <> 1 _
+        Or childRange.Rows.Count <> parentRange.Rows.Count Then _
+        Err.Raise vbObjectError + 1, Description:="Bad/inconsistent child/parent ranges"
+    
+    'Load values into variant arrays
+    childValues = childRange.Value
+    parentValues = parentRange.Value
+
+    'Instantiate a dictionary
+    Set dict = CreateObject("scripting.dictionary")
+
+    'Populate the dictionary
+
+    For i = 1 To UBound(childValues)
+        aChild = CStr(childValues(i, 1))
+        aParent = CStr(parentValues(i, 1))
+        dict.Add aChild, aParent
+    Next i
+
+    Set BuildDictionaryOfRelations = dict
+
+End Function
+
+Private Function TraceAncestor(aChild As String, relationDict As Object, rootString As String) As String
+    
+    Dim aParent As String
+    
+    'If aChild is a root, return root
+    If relationDict.Item(aChild) = rootString Then
+        TraceAncestor = rootString
+        Exit Function
+    End If
+    
+    'Trace from child to parent to parent to parent... to find ultimate ancestor
+    Do
+        aParent = relationDict.Item(aChild)
+        If aParent = rootString Then Exit Do
+        aChild = aParent
+    Loop
+    
+    TraceAncestor = aChild
+    
+End Function
+
+2. '//Option 2 for Tree data
+
+Public Sub DictionaryExamples()
+
+    Dim sht As Worksheet: Set sht = ActiveSheet
+    Dim exampleValues As Variant
+    Dim i As Long
+    Dim aKey As String, aValue As String
+    Dim exampleDict As Object
+    Dim curCell As Range
+
+    'Load values into a variant array
+    exampleValues = Range("A2:B15").Value
+
+    'Instantiate a dictionary
+    Set exampleDict = CreateObject("scripting.dictionary")
+
+    'Read all keys and values, and add them to the dictionary
+
+    For i = 1 To UBound(exampleValues)
+        aKey = CStr(exampleValues(i, 1))
+        aValue = CStr(exampleValues(i, 2))
+        exampleDict.Add aKey, aValue
+    Next i
+
+    'After Dictionary setup, use input values E to output Ancestor F
+
+
+    With sht
+        'Loop through all values in parent to find ancestor
+        For Each curCell In .Range("E2", .Cells(Rows.Count, "E").End(xlUp))
+            aKey = curCell
+            'If the
+            If Not exampleDict.Exists(exampleDict(aKey)) Then
+                'If the node is a parent node print it's value
+                'To avoid confusion I'd have used: curCell(, 2).Value = "Parent Node"
+                curCell(, 2).Value = exampleDict(aKey)
+            Else
+                'Search Dictionary until no matches are found, that is ancestor
+                Do
+                    If exampleDict.Exists(aKey) Then
+                        'Here we test if this child node's parent is a root node
+                        If Not exampleDict.Exists(exampleDict(aKey)) Then
+                            'The child node's parent is a root node
+                            curCell(, 2).Value = aKey
+                            Exit Do
+                        Else
+                            'The child node's parent is also a leaf so continue
+                            aKey = exampleDict(aKey)
+                        End If
+                    End If
+                Loop
+            End If
+        Next
+    End With
+
+End Sub
