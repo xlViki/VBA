@@ -68,4 +68,19 @@
     Function ArrayList()
         Set ArrayList = CreateObject("System.Collections.ArrayList")
     End Function
+    
+5. '//you can redimension a dynamic array (1 to 3, 1 to 4) to (1 to 3, 1 to 6), but you cannot redimension directly an array (1 to 3, 1 to 4) to (1 to 5, 1 to 4) as ReDim only lets you redimension the last dimension. You can use the worksheet function Transpose() to do it:
 
+    Sub TestArray()
+    Dim v, v1
+
+    ReDim v(1 To 3, 1 To 4)
+
+    ' some code
+
+    With Application
+        v1 = .Transpose(v)
+        ReDim Preserve v1(1 To 4, 1 To 5)
+        v = .Transpose(v1)
+    End With
+    End Sub
