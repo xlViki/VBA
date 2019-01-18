@@ -710,3 +710,12 @@
         CopyMemory Ret, ByVal Ret, ByVal 4
         ArrayNotEmpty = (Ret <> 0)
     End Function
+    
+26. '//Count the occurrences of a letter in a string:
+
+    Function CountOccurrencesOf(Letter As String, InString As String, Optional CaseSensitive As Boolean = True) As Long
+        CountOccurrencesOf = Len(InString) - Len(Replace$(InString, Letter, vbNullString, , , IIf(CaseSensitive, vbBinaryCompare, vbTextCompare)))
+    End Function
+    MsgBox CountOccurrencesOf(Letter:="A", InString:="A Sentence with occurences of a or A or anything else", CaseSensitive:=False)
+    ' For multiple letter counting (eg Letter:="en") you would need to devide by Len(Letter)
+    'CountOccurrencesOf = (Len(InString) - Len(Replace$(InString, Letter, vbNullString, , , IIf(CaseSensitive, vbBinaryCompare, vbTextCompare)))) / Len(Letter)
