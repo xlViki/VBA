@@ -1,0 +1,83 @@
+1. '// Using win 32 API
+
+    Public Const MAX_PATH = 260 'maximum length of a filename including drive and path
+
+    Public Const INVALID_HANDLE_VALUE = -1 'windows constant that is returned by some of the function IF their handling is invalid
+
+
+    'File attributes
+    Public Const FILE_ATTRIBUTE_READONLY = &H1
+    Public Const FILE_ATTRIBUTE_HIDDEN = &H2
+    Public Const FILE_ATTRIBUTE_SYSTEM = &H4
+    Public Const FILE_ATTRIBUTE_DIRECTORY = &H10
+    Public Const FILE_ATTRIBUTE_ARCHIVE = &H20
+    Public Const FILE_ATTRIBUTE_NORMAL = &H80
+    Public Const FILE_ATTRIBUTE_TEMPORARY = &H100
+    Public Const FILE_ATTRIBUTE_COMPRESSED = &H800
+
+    Private Type FILETIME
+      dwLowDateTime As Long
+      dwHighDateTime As Long
+    End Type
+
+    Public Type WIN32_FIND_DATA
+      dwFileAttributes As Long
+      ftCreationTime As FILETIME
+      ftLastAccessTime As FILETIME
+      ftLastWriteTime As FILETIME
+      nFileSizeHigh As Long
+      nFileSizeLow As Long
+      dwReserved0 As Long
+      dwReserved1 As Long
+      cFileName As String * MAX_PATH
+      cAlternate As String * 14
+    End Type
+
+    Public Declare Function FindFirstFile Lib "kernel32" Alias "FindFirstFileA" (ByVal lpFileName As String, _
+      lpFindFileData As WIN32_FIND_DATA) As Long
+    Public Declare Function FindNextFile Lib "kernel32" Alias "FindNextFileA" (ByVal hFindFile As Long, _
+      lpFindFileData As WIN32_FIND_DATA) As Long
+    Public Declare Function FindClose Lib "kernel32" (ByVal hFindFile As Long) As Long
+
+    Public Function ExtractCString(strCString As String) As String
+      Dim iPos As Long
+      iPos = InStr(strCString, Chr$(0))
+      ExtractCString = Left$(strCString, iPos - 1)
+    End Function
+
+
+    Public Sub RecurseFiles(strPath As String, strPattern As String)
+      Dim iSearchHnd As Long
+      Dim iResult As Long
+      Dim recSearch As WIN32_FIND_DATA
+      Dim strFileName As String
+      iSearchHnd = FindFirstFile(strPath + strPattern, recSearch)
+      If iSearchHnd <> INVALID_HANDLE_VALUE Then
+        Do
+          strFileName = ExtractCString(recSearch.cFileName)
+          Debug.Print strPath + strFileName
+          iResult = FindNextFile(iSearchHnd, recSearch)
+        Loop Until iResult = 0
+        iResult = FindClose(iSearchHnd)
+      End If
+      iSearchHnd = FindFirstFile(strPath + "*.*", recSearch)
+      If iSearchHnd <> INVALID_HANDLE_VALUE Then
+        Do
+          If (recSearch.dwFileAttributes And FILE_ATTRIBUTE_DIRECTORY) <> 0 Then
+            strFileName = ExtractCString(recSearch.cFileName)
+            If strFileName <> "." And strFileName <> ".." Then
+              RecurseFiles strPath & strFileName & "\", strPattern
+            End If
+          End If
+          iResult = FindNextFile(iSearchHnd, recSearch)
+        Loop Until iResult = 0
+        iResult = FindClose(iSearchHnd)
+      End If
+    End Sub
+
+
+    Sub Test()
+      Debug.Print "############## START ################"
+      RecurseFiles Range("ParentDirectory").Value & "\", "*.xls*"
+      Debug.Print "############## FINISH ###############"
+    End Sub
