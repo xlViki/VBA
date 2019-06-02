@@ -7,3 +7,205 @@
              MsgBox "Only numbers allowed"
       End Select
     End Sub
+
+
+2. '// NOT a userform - replace button names in vbOkRetryCancel prompt messagebox
+
+    Option Explicit
+    Private Const MB_YESNOCANCEL = &H3&
+    Private Const MB_YESNO = &H4&
+    Private Const MB_RETRYCANCEL = &H5&
+    Private Const MB_OKCANCEL = &H1&
+    Private Const MB_OK = &H0&
+    Private Const MB_ABORTRETRYIGNORE = &H2&
+    Private Const MB_ICONEXCLAMATION = &H30&
+    Private Const MB_ICONQUESTION = &H20&
+    Private Const MB_ICONASTERISK = &H40&
+    Private Const MB_ICONINFORMATION = MB_ICONASTERISK
+    Private Const IDOK = 1
+    Private Const IDCANCEL = 2
+    Private Const IDABORT = 3
+    Private Const IDRETRY = 4
+    Private Const IDIGNORE = 5
+    Private Const IDYES = 6
+    Private Const IDNO = 7
+    Private Const IDPROMPT = &HFFFF&
+    Private Const WH_CBT = 5
+    Private Const GWL_HINSTANCE = (-6)
+    Private Const HCBT_ACTIVATE = 5
+    Private Type MSGBOX_HOOK_PARAMS
+        hwndOwner As Long
+        hHook As Long
+    End Type
+    Private MSGHOOK As MSGBOX_HOOK_PARAMS
+
+    #If VBA7 Then
+
+        Private Declare PtrSafe Function GetCurrentThreadId Lib "kernel32" () As Long
+        Public Declare PtrSafe Function GetDesktopWindow Lib "user32" () As Long
+        Private Declare PtrSafe Function GetWindowLong Lib "user32" Alias _
+        "GetWindowLongA" (ByVal hwnd As Long, _
+        ByVal nIndex As Long) As Long
+        Private Declare PtrSafe Function MessageBox Lib "user32" Alias _
+        "MessageBoxA" (ByVal hwnd As Long, _
+        ByVal lpText As String, _
+        ByVal lpCaption As String, _
+        ByVal wType As Long) As Long
+        Private Declare PtrSafe Function SetDlgItemText Lib "user32" Alias _
+        "SetDlgItemTextA" (ByVal hDlg As Long, _
+        ByVal nIDDlgItem As Long, _
+        ByVal lpString As String) As Long
+        Private Declare PtrSafe Function SetWindowsHookEx Lib "user32" Alias _
+        "SetWindowsHookExA" (ByVal idHook As Long, _
+        ByVal lpfn As Long, _
+        ByVal hmod As Long, _
+        ByVal dwThreadId As Long) As Long
+        Private Declare PtrSafe Function SetWindowText Lib "user32" Alias _
+        "SetWindowTextA" (ByVal hwnd As Long, _
+        ByVal lpString As String) As Long
+        Private Declare PtrSafe Function UnhookWindowsHookEx Lib "user32" _
+        (ByVal hHook As Long) As Long
+    #Else
+        Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
+        Public Declare Function GetDesktopWindow Lib "user32" () As Long
+        Private Declare Function GetWindowLong Lib "user32" Alias _
+        "GetWindowLongA" (ByVal hwnd As Long, _
+        ByVal nIndex As Long) As Long
+        Private Declare Function MessageBox Lib "user32" Alias _
+        "MessageBoxA" (ByVal hwnd As Long, _
+        ByVal lpText As String, _
+        ByVal lpCaption As String, _
+        ByVal wType As Long) As Long
+        Private Declare Function SetDlgItemText Lib "user32" Alias _
+        "SetDlgItemTextA" (ByVal hDlg As Long, _
+        ByVal nIDDlgItem As Long, _
+        ByVal lpString As String) As Long
+        Private Declare Function SetWindowsHookEx Lib "user32" Alias _
+        "SetWindowsHookExA" (ByVal idHook As Long, _
+        ByVal lpfn As Long, _
+        ByVal hmod As Long, _
+        ByVal dwThreadId As Long) As Long
+        Private Declare Function SetWindowText Lib "user32" Alias _
+        "SetWindowTextA" (ByVal hwnd As Long, _
+        ByVal lpString As String) As Long
+        Private Declare Function UnhookWindowsHookEx Lib "user32" _
+        (ByVal hHook As Long) As Long
+    #End If
+
+    Dim mbFlags As VbMsgBoxStyle
+    Dim mbFlags2 As VbMsgBoxStyle
+    Dim mTitle As String
+    Dim mPrompt As String
+    Dim But1 As String
+    Dim But2 As String
+    Dim But3 As String
+
+    Public Function MessageBoxH(hwndThreadOwner As Long, _
+        hwndOwner As Long, _
+        mbFlags As VbMsgBoxStyle) As Long
+        Dim hInstance As Long
+        Dim hThreadId As Long
+
+        hInstance = GetWindowLong(hwndThreadOwner, GWL_HINSTANCE)
+        hThreadId = GetCurrentThreadId()
+
+        With MSGHOOK
+            .hwndOwner = hwndOwner
+            .hHook = SetWindowsHookEx(WH_CBT, AddressOf MsgBoxHookProc, hInstance, hThreadId)
+        End With
+
+        MessageBoxH = MessageBox(hwndOwner, Space$(120), Space$(120), mbFlags)
+
+    End Function
+
+    Public Function MsgBoxHookProc(ByVal uMsg As Long, _
+        ByVal wParam As Long, _
+        ByVal lParam As Long) As Long
+
+        If uMsg = HCBT_ACTIVATE Then
+            SetWindowText wParam, mTitle
+            SetDlgItemText wParam, IDPROMPT, mPrompt
+
+            Select Case mbFlags
+            Case vbAbortRetryIgnore
+                SetDlgItemText wParam, IDABORT, But1
+                SetDlgItemText wParam, IDRETRY, But2
+                SetDlgItemText wParam, IDIGNORE, But3
+            Case vbYesNoCancel
+                SetDlgItemText wParam, IDYES, But1
+                SetDlgItemText wParam, IDNO, But2
+                SetDlgItemText wParam, IDCANCEL, But3
+            Case vbOKOnly
+                SetDlgItemText wParam, IDOK, But1
+            Case vbRetryCancel
+                SetDlgItemText wParam, IDRETRY, But1
+                SetDlgItemText wParam, IDCANCEL, But2
+            Case vbYesNo
+                SetDlgItemText wParam, IDYES, But1
+                SetDlgItemText wParam, IDNO, But2
+            Case vbOKCancel
+                SetDlgItemText wParam, IDOK, But1
+                SetDlgItemText wParam, IDCANCEL, But2
+            End Select
+
+            UnhookWindowsHookEx MSGHOOK.hHook
+        End If
+
+        MsgBoxHookProc = False
+
+    End Function
+
+    Public Function BBmsgbox(mhwnd As Long, _
+        mMsgbox As VbMsgBoxStyle, _
+        Title As String, _
+        Prompt As String, _
+        Optional mMsgIcon As VbMsgBoxStyle, _
+        Optional ButA As String, _
+        Optional ButB As String, _
+        Optional ButC As String) As String
+        Dim CustomText As Long
+
+        mbFlags = mMsgbox
+        mbFlags2 = mMsgIcon
+        mTitle = Title
+        mPrompt = Prompt
+        But1 = ButA
+        But2 = ButB
+        But3 = ButC
+        CustomText = MessageBoxH(mhwnd, GetDesktopWindow(), mbFlags Or mbFlags2)
+
+        Select Case CustomText
+        Case IDABORT
+            BBmsgbox = But1
+        Case IDRETRY
+            BBmsgbox = But2
+        Case IDIGNORE
+            BBmsgbox = But3
+        Case IDYES
+            BBmsgbox = But1
+        Case IDNO
+            BBmsgbox = But2
+        Case IDCANCEL
+            BBmsgbox = But3
+        Case IDOK
+            BBmsgbox = But1
+        End Select
+
+    End Function
+
+    Function AdminOption() As String
+        Dim LockUnlock
+        Dim xitem$
+        Dim isufx$
+        Dim xNum!
+
+
+           AdminOption = BBmsgbox(1, 3, "Choose Options", "Lock or Unlock the sheets  ", 64, "Lock Test", "Unlock Test", "Cancel")
+    '        If LockUnlock = "Lock Test" Then
+    '            MsgBox "Test Locked"
+    '        Else
+    '            MsgBox "Test Unlocked"
+    '
+    '        End If
+
+    End Function
