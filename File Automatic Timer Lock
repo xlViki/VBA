@@ -40,7 +40,7 @@ Private Sub SaveFile()
     Application.DisplayAlerts = False
     ActiveWorkbook.Save
     'ActiveWorkbook.Close
-    
+    Application.CommandBars("Ply").Enabled = True
 End Sub
 
 
@@ -60,7 +60,7 @@ End Sub
 
 
 Sub StartTest()
-
+Application.CommandBars("Ply").Enabled = False
 Static FileAlreadyOpen As Boolean
 
 If FileAlreadyOpen = False Then
